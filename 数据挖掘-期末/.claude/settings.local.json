@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python main/data-mining/data_cleaning.py)",
+      "Bash(pip install *)",
+      "Bash(python main/data-mining/eda_analysis.py)",
+      "Bash(python main/data-mining/clustering.py)",
+      "Bash(python main/data-mining/od_analysis.py)"
+    ]
+  }
+}
