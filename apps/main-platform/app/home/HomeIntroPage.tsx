@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import {
   BASE_VH,
   BASE_VW,
+  BRAND_BLUE,
   GRID_LINE_COLOR,
   MOBILE_BREAKPOINT,
   SCROLL_SHELL_VH,
@@ -18,7 +19,6 @@ import {
   interpolateTracks,
   rectToStyle,
   syncGridFrame,
-  type PanelKey,
 } from "./utils";
 
 export function HomeIntroPage() {
@@ -71,8 +71,6 @@ export function HomeIntroPage() {
 
     const ctx = gsap.context(() => {
       const panels = world.querySelectorAll<HTMLElement>(".home-grid-panel");
-      const orbitOnePanels = world.querySelectorAll<HTMLElement>('[data-orbit="one"]');
-      const orbitTwoPanels = world.querySelectorAll<HTMLElement>('[data-orbit="two"]');
       const lines = lineSvg.querySelectorAll<SVGLineElement>(".home-grid-line");
       const bikePaths = bike.querySelectorAll<SVGPathElement>(".home-bike-path");
 
@@ -114,9 +112,13 @@ export function HomeIntroPage() {
 
       gsap.set(introCopy, { autoAlpha: 0, y: 18 });
       gsap.set(hint, { autoAlpha: 0, y: -8 });
-      gsap.set(orbitOnePanels, { autoAlpha: 0 });
-      gsap.set(orbitTwoPanels, { autoAlpha: 0 });
-      gsap.set(centerPanel, { autoAlpha: 0, scale: 0.972, transformOrigin: "50% 50%" });
+      gsap.set(panels, { willChange: "left, top, width, height" });
+      gsap.set(centerPanel, {
+        autoAlpha: 0,
+        backgroundColor: "#8ea2ff",
+        scale: 0.84,
+        transformOrigin: "50% 50%",
+      });
 
       const introTl = gsap.timeline({ defaults: { ease: "power2.out" } });
       introTl.to(
@@ -133,29 +135,30 @@ export function HomeIntroPage() {
         centerPanel,
         {
           autoAlpha: 1,
+          backgroundColor: BRAND_BLUE,
           scale: 1,
-          duration: 0.72,
+          duration: 0.92,
           ease: "power3.out",
         },
-        0.28,
+        0.22,
       );
       introTl.to(
         introCopy,
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.42,
+          duration: 0.48,
         },
-        0.76,
+        0.82,
       );
       introTl.to(
         hint,
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.28,
+          duration: 0.34,
         },
-        0.96,
+        1.04,
       );
 
       let scrollTl: gsap.core.Timeline | undefined;
@@ -167,7 +170,7 @@ export function HomeIntroPage() {
           scrollTrigger: {
             trigger: shell,
             start: "top top",
-            end: () => `+=${window.innerHeight * 2.6}`,
+            end: () => `+=${window.innerHeight * 1.55}`,
             pin: viewport,
             scrub: true,
             invalidateOnRefresh: true,
@@ -183,22 +186,6 @@ export function HomeIntroPage() {
             onUpdate: () => renderProgress(state.progress),
           },
           0,
-        );
-        scrollTl.to(
-          orbitOnePanels,
-          {
-            autoAlpha: 1,
-            duration: 0.18,
-          },
-          0.04,
-        );
-        scrollTl.to(
-          orbitTwoPanels,
-          {
-            autoAlpha: 1,
-            duration: 0.18,
-          },
-          0.28,
         );
         scrollTl.to(
           introCopy,
@@ -223,19 +210,19 @@ export function HomeIntroPage() {
           {
             autoAlpha: 1,
             strokeDashoffset: 0,
-            duration: 0.24,
+            duration: 0.46,
             ease: LOGO_DRAW_EASE,
-            stagger: 0.03,
+            stagger: 0.012,
           },
-          0.42,
+          0.18,
         );
         scrollTl.to(
           lines,
           {
-            autoAlpha: 0.22,
+            autoAlpha: 0,
             duration: 0.18,
           },
-          0.82,
+          0.64,
         );
       });
 
@@ -297,12 +284,11 @@ export function HomeIntroPage() {
                   key={panel.key}
                   ref={isCenter ? centerPanelRef : undefined}
                   data-panel={panel.key}
-                  data-orbit={getPanelOrbit(panel.key)}
                   className={`home-grid-panel${isCenter ? " home-center-panel" : ""}`}
                   style={{
                     ...rectToStyle(panel.rect),
                     backgroundColor: panel.color,
-                    opacity: isDesktop ? 0 : 1,
+                    opacity: 1,
                   }}
                 >
                   {isCenter && (
@@ -318,13 +304,19 @@ export function HomeIntroPage() {
                         viewBox={`0 0 ${bikeWidth} ${bikeHeight}`}
                         aria-hidden="true"
                       >
-                        <path className="home-bike-path" d={bike.leftWheel} />
-                        <path className="home-bike-path" d={bike.rightWheel} />
-                        <path className="home-bike-path" d={bike.frame} />
+                        {bike.paths.map((path, index) => (
+                          <path key={index} className="home-bike-path" d={path} />
+                        ))}
                       </svg>
 
                       <div ref={hintRef} className="home-scroll-hint">
-                        {introCopy.hint}
+                        <svg className="home-scroll-mouse" viewBox="0 0 36 40" aria-hidden="true">
+                          <rect className="home-scroll-mouse-shell" x="8" y="4" width="20" height="30" rx="10" />
+                          <path className="home-scroll-mouse-detail" d="M18 4 V14" />
+                          <path className="home-scroll-mouse-detail" d="M9 15 H27" />
+                          <rect className="home-scroll-mouse-wheel" x="16" y="9" width="4" height="7" rx="2" />
+                          <path className="home-scroll-mouse-cue" d="M18 35 V38" />
+                        </svg>
                       </div>
                     </>
                   )}
@@ -336,16 +328,4 @@ export function HomeIntroPage() {
       </div>
     </main>
   );
-}
-
-function getPanelOrbit(panel: PanelKey) {
-  if (panel === "voiceTone" || panel === "color" || panel === "logo" || panel === "imagery") {
-    return "one";
-  }
-
-  if (panel === "framework" || panel === "iconography" || panel === "typography" || panel === "motion") {
-    return "two";
-  }
-
-  return undefined;
 }

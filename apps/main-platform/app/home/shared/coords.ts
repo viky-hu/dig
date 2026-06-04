@@ -1,11 +1,13 @@
 export const BRAND_BLUE = "#3152f4";
 export const BASE_VW = 1440;
 export const BASE_VH = 900;
-export const GRID_GAP = 8;
-export const SCROLL_SHELL_VH = 340;
+// Small final inset only; the large animated whitespace comes from track movement.
+export const FINAL_PANEL_INSET = 8;
+export const FINAL_OUTER_MARGIN_RATIO = 0;
+export const SCROLL_SHELL_VH = 235;
 export const MOBILE_BREAKPOINT = 1024;
 export const PHASE1_STROKE = 1.5;
-export const GRID_LINE_COLOR = "rgba(137, 174, 255, 0.48)";
+export const GRID_LINE_COLOR = "rgba(118, 162, 255, 0.62)";
 
 export const INTRO_RECT_RATIOS = {
   x1: 0.31,
@@ -15,7 +17,7 @@ export const INTRO_RECT_RATIOS = {
 } as const;
 
 export const FINAL_TRACK_RATIOS = {
-  columns: [19, 27, 6, 27, 19] as const,
+  columns: [19, 27, 6.25, 27, 19] as const,
   rows: [43, 10, 47] as const,
 };
 

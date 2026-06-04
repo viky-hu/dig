@@ -1,6 +1,7 @@
 import {
   FINAL_TRACK_RATIOS,
-  GRID_GAP,
+  FINAL_PANEL_INSET,
+  FINAL_OUTER_MARGIN_RATIO,
   INTRO_RECT_RATIOS,
   PANEL_COLORS,
 } from "./shared/coords";
@@ -10,11 +11,6 @@ export type Rect = {
   y: number;
   width: number;
   height: number;
-};
-
-export type TrackState = {
-  xLines: number[];
-  yLines: number[];
 };
 
 export type GuideLine = {
@@ -35,6 +31,13 @@ export type PanelKey =
   | "imagery"
   | "typography"
   | "motion";
+
+export type TrackState = {
+  xLines: number[];
+  yLines: number[];
+  guideXLines?: number[];
+  guideYLines?: number[];
+};
 
 export type PanelSpec = {
   key: PanelKey;
@@ -63,75 +66,164 @@ export type SceneGeometry = {
 };
 
 const PANEL_SPECS: PanelSpec[] = [
-  { key: "framework", color: PANEL_COLORS.framework, colStart: 0, colEnd: 1, rowStart: 0, rowEnd: 2 },
-  { key: "iconography", color: PANEL_COLORS.iconography, colStart: 0, colEnd: 1, rowStart: 2, rowEnd: 3 },
-  { key: "voiceTone", color: PANEL_COLORS.voiceTone, colStart: 1, colEnd: 3, rowStart: 0, rowEnd: 1 },
-  { key: "color", color: PANEL_COLORS.color, colStart: 1, colEnd: 2, rowStart: 1, rowEnd: 3 },
-  { key: "centerCore", color: PANEL_COLORS.centerCore, colStart: 2, colEnd: 3, rowStart: 1, rowEnd: 2 },
-  { key: "logo", color: PANEL_COLORS.logo, colStart: 3, colEnd: 4, rowStart: 0, rowEnd: 2 },
-  { key: "imagery", color: PANEL_COLORS.imagery, colStart: 2, colEnd: 4, rowStart: 2, rowEnd: 3 },
-  { key: "typography", color: PANEL_COLORS.typography, colStart: 4, colEnd: 5, rowStart: 0, rowEnd: 1 },
-  { key: "motion", color: PANEL_COLORS.motion, colStart: 4, colEnd: 5, rowStart: 1, rowEnd: 3 },
+  { key: "framework", color: PANEL_COLORS.framework, colStart: 0, colEnd: 1, rowStart: 0, rowEnd: 1 },
+  { key: "iconography", color: PANEL_COLORS.iconography, colStart: 2, colEnd: 3, rowStart: 2, rowEnd: 3 },
+  { key: "voiceTone", color: PANEL_COLORS.voiceTone, colStart: 4, colEnd: 5, rowStart: 4, rowEnd: 5 },
+  { key: "color", color: PANEL_COLORS.color, colStart: 6, colEnd: 7, rowStart: 6, rowEnd: 7 },
+  { key: "centerCore", color: PANEL_COLORS.centerCore, colStart: 8, colEnd: 9, rowStart: 8, rowEnd: 9 },
+  { key: "logo", color: PANEL_COLORS.logo, colStart: 10, colEnd: 11, rowStart: 10, rowEnd: 11 },
+  { key: "imagery", color: PANEL_COLORS.imagery, colStart: 12, colEnd: 13, rowStart: 12, rowEnd: 13 },
+  { key: "typography", color: PANEL_COLORS.typography, colStart: 14, colEnd: 15, rowStart: 14, rowEnd: 15 },
+  { key: "motion", color: PANEL_COLORS.motion, colStart: 16, colEnd: 17, rowStart: 16, rowEnd: 17 },
 ];
 
+const FINAL_GRID_SPANS: Record<PanelKey, { xStart: number; xEnd: number; yStart: number; yEnd: number }> = {
+  framework: { xStart: 0, xEnd: 1, yStart: 0, yEnd: 2 },
+  iconography: { xStart: 0, xEnd: 1, yStart: 2, yEnd: 3 },
+  voiceTone: { xStart: 1, xEnd: 3, yStart: 0, yEnd: 1 },
+  color: { xStart: 1, xEnd: 2, yStart: 1, yEnd: 3 },
+  centerCore: { xStart: 2, xEnd: 3, yStart: 1, yEnd: 2 },
+  logo: { xStart: 3, xEnd: 4, yStart: 0, yEnd: 2 },
+  imagery: { xStart: 2, xEnd: 4, yStart: 2, yEnd: 3 },
+  typography: { xStart: 4, xEnd: 5, yStart: 0, yEnd: 1 },
+  motion: { xStart: 4, xEnd: 5, yStart: 1, yEnd: 3 },
+};
+
 function ratioTracks(total: number, ratios: readonly number[]) {
-  const usable = total - GRID_GAP * (ratios.length - 1);
   const sum = ratios.reduce((value, item) => value + item, 0);
   const lines = [0];
   let cursor = 0;
 
-  ratios.forEach((ratio, index) => {
-    cursor += (ratio / sum) * usable;
-    if (index < ratios.length - 1) {
-      cursor += GRID_GAP;
-      lines.push(cursor);
-    } else {
-      lines.push(total);
-    }
+  ratios.forEach((ratio) => {
+    cursor += (ratio / sum) * total;
+    lines.push(cursor);
   });
 
+  lines[lines.length - 1] = total;
   return lines;
-}
-
-function rectCenter(rect: Rect) {
-  return {
-    x: rect.x + rect.width / 2,
-    y: rect.y + rect.height / 2,
-  };
 }
 
 export function rectFromTrackSpan(tracks: TrackState, spec: Pick<PanelSpec, "colStart" | "colEnd" | "rowStart" | "rowEnd">): Rect {
   const x = tracks.xLines[spec.colStart];
   const y = tracks.yLines[spec.rowStart];
-  const right = trackSpanEnd(tracks.xLines, spec.colEnd);
-  const bottom = trackSpanEnd(tracks.yLines, spec.rowEnd);
+  const right = tracks.xLines[spec.colEnd];
+  const bottom = tracks.yLines[spec.rowEnd];
+  const inset = FINAL_PANEL_INSET / 2;
 
   return {
-    x,
-    y,
-    width: Math.max(0, right - x),
-    height: Math.max(0, bottom - y),
+    x: x + inset,
+    y: y + inset,
+    width: Math.max(0, right - x - FINAL_PANEL_INSET),
+    height: Math.max(0, bottom - y - FINAL_PANEL_INSET),
   };
 }
 
-function trackSpanEnd(lines: number[], endIndex: number) {
-  if (endIndex >= lines.length - 1) {
-    return lines[endIndex];
-  }
-  return lines[endIndex] - GRID_GAP;
-}
-
 function buildStartTracks(viewportWidth: number, viewportHeight: number, endTracks: TrackState, introRect: Rect): TrackState {
-  const endCenterRect = rectFromTrackSpan(endTracks, PANEL_SPECS.find((spec) => spec.key === "centerCore")!);
-  const endCenter = rectCenter(endCenterRect);
-  const introCenter = rectCenter(introRect);
-
-  const xScale = introRect.width / endCenterRect.width;
-  const yScale = introRect.height / endCenterRect.height;
+  const inset = FINAL_PANEL_INSET / 2;
+  const finalRects = getPanelEntries(endTracks).reduce<Record<PanelKey, Rect>>(
+    (rects, panel) => ({ ...rects, [panel.key]: panel.rect }),
+    {} as Record<PanelKey, Rect>,
+  );
+  const tracks = tracksFromPanelRects(getStartPanelRects(viewportWidth, viewportHeight, introRect, finalRects));
 
   return {
-    xLines: endTracks.xLines.map((line) => introCenter.x + (line - endCenter.x) * xScale),
-    yLines: endTracks.yLines.map((line) => introCenter.y + (line - endCenter.y) * yScale),
+    ...tracks,
+    guideXLines: [
+      -viewportWidth * 0.72,
+      -viewportWidth * 0.18,
+      introRect.x,
+      introRect.x + introRect.width,
+      viewportWidth * 1.18,
+      viewportWidth * 1.72,
+    ],
+    guideYLines: [
+      -viewportHeight * 0.42,
+      introRect.y,
+      introRect.y + introRect.height,
+      viewportHeight * 1.42,
+    ],
+  };
+}
+
+function getStartPanelRects(
+  viewportWidth: number,
+  viewportHeight: number,
+  introRect: Rect,
+  finalRects: Record<PanelKey, Rect>,
+): Record<PanelKey, Rect> {
+  const margin = Math.max(viewportWidth, viewportHeight) * 0.08;
+  const outerMargin = margin * 2.2;
+
+  const voiceWidth = introRect.width * 0.72;
+  const voiceHeight = viewportHeight * 0.18;
+  const colorWidth = viewportWidth * 0.18;
+  const colorHeight = introRect.height * 0.74;
+  const logoWidth = viewportWidth * 0.2;
+  const logoHeight = introRect.height * 0.78;
+  const imageryWidth = introRect.width * 0.68;
+  const imageryHeight = viewportHeight * 0.22;
+  const frameworkWidth = viewportWidth * 0.16;
+  const frameworkHeight = viewportHeight * 0.38;
+  const iconographyWidth = viewportWidth * 0.13;
+  const iconographyHeight = viewportHeight * 0.22;
+  const typographyWidth = viewportWidth * 0.16;
+  const typographyHeight = viewportHeight * 0.24;
+  const motionWidth = viewportWidth * 0.14;
+  const motionHeight = viewportHeight * 0.42;
+  const colorX = -colorWidth - margin;
+  const logoX = viewportWidth + margin;
+  const logoRight = logoX + logoWidth;
+
+  return {
+    centerCore: introRect,
+    voiceTone: {
+      x: introRect.x + introRect.width * 0.14,
+      y: -voiceHeight - margin,
+      width: voiceWidth,
+      height: voiceHeight,
+    },
+    color: {
+      x: colorX,
+      y: introRect.y + introRect.height * 0.1,
+      width: colorWidth,
+      height: colorHeight,
+    },
+    logo: {
+      x: logoX,
+      y: introRect.y + introRect.height * 0.08,
+      width: logoWidth,
+      height: logoHeight,
+    },
+    imagery: {
+      x: introRect.x + introRect.width * 0.16,
+      y: viewportHeight + margin,
+      width: imageryWidth,
+      height: imageryHeight,
+    },
+    framework: {
+      x: colorX - frameworkWidth - margin * 0.72,
+      y: Math.max(24, finalRects.framework.y * 0.42),
+      width: frameworkWidth,
+      height: frameworkHeight,
+    },
+    iconography: {
+      x: colorX - iconographyWidth - margin * 0.96,
+      y: viewportHeight - iconographyHeight - Math.max(24, margin * 0.72),
+      width: iconographyWidth,
+      height: iconographyHeight,
+    },
+    typography: {
+      x: logoRight + margin * 0.72,
+      y: Math.max(24, finalRects.typography.y + margin * 0.45),
+      width: typographyWidth,
+      height: typographyHeight,
+    },
+    motion: {
+      x: logoRight + margin * 0.96,
+      y: viewportHeight - motionHeight - Math.max(24, margin * 0.68),
+      width: motionWidth,
+      height: motionHeight,
+    },
   };
 }
 
@@ -161,9 +253,34 @@ export function computeSceneGeometry(viewportWidth: number, viewportHeight: numb
 }
 
 export function getEndTracks(viewportWidth: number, viewportHeight: number): TrackState {
+  const outerMargin = Math.min(viewportWidth, viewportHeight) * FINAL_OUTER_MARGIN_RATIO;
+  const xLines = ratioTracks(viewportWidth - outerMargin * 2, FINAL_TRACK_RATIOS.columns).map(
+    (line) => line + outerMargin,
+  );
+  const yLines = ratioTracks(viewportHeight - outerMargin * 2, FINAL_TRACK_RATIOS.rows).map(
+    (line) => line + outerMargin,
+  );
+
+  const tracks = PANEL_SPECS.reduce<TrackState>(
+    (tracks, spec) => {
+      const span = FINAL_GRID_SPANS[spec.key];
+
+      tracks.xLines[spec.colStart] = xLines[span.xStart];
+      tracks.xLines[spec.colEnd] = xLines[span.xEnd];
+      tracks.yLines[spec.rowStart] = yLines[span.yStart];
+      tracks.yLines[spec.rowEnd] = yLines[span.yEnd];
+
+      return tracks;
+    },
+    { xLines: [], yLines: [] },
+  );
+  const centerSpec = PANEL_SPECS.find((spec) => spec.key === "centerCore")!;
+  const centerRect = rectFromTrackSpan(tracks, centerSpec);
+
   return {
-    xLines: ratioTracks(viewportWidth, FINAL_TRACK_RATIOS.columns),
-    yLines: ratioTracks(viewportHeight, FINAL_TRACK_RATIOS.rows),
+    ...tracks,
+    guideXLines: [xLines[0], xLines[1], centerRect.x, centerRect.x + centerRect.width, xLines[4], xLines[5]],
+    guideYLines: [yLines[0], centerRect.y, centerRect.y + centerRect.height, yLines[3]],
   };
 }
 
@@ -183,10 +300,20 @@ export function getStartTracks(
 
 export function interpolateTracks(start: TrackState, end: TrackState, progress: number): TrackState {
   const easedProgress = clamp(progress, 0, 1);
-  return {
+  const tracks: TrackState = {
     xLines: start.xLines.map((line, index) => lerp(line, end.xLines[index], easedProgress)),
     yLines: start.yLines.map((line, index) => lerp(line, end.yLines[index], easedProgress)),
   };
+
+  if (start.guideXLines && end.guideXLines) {
+    tracks.guideXLines = start.guideXLines.map((line, index) => lerp(line, end.guideXLines![index], easedProgress));
+  }
+
+  if (start.guideYLines && end.guideYLines) {
+    tracks.guideYLines = start.guideYLines.map((line, index) => lerp(line, end.guideYLines![index], easedProgress));
+  }
+
+  return tracks;
 }
 
 export function getPanelEntries(tracks: TrackState): PanelEntry[] {
@@ -197,28 +324,18 @@ export function getPanelEntries(tracks: TrackState): PanelEntry[] {
 }
 
 export function getGuideLines(tracks: TrackState, viewportWidth: number, viewportHeight: number): GuideLine[] {
-  const xEdges = uniqueSortedEdges(tracks.xLines.flatMap((line, index) => {
-    if (index === 0 || index === tracks.xLines.length - 1) {
-      return [line];
-    }
-    return [line - GRID_GAP, line];
-  }));
-  const yEdges = uniqueSortedEdges(tracks.yLines.flatMap((line, index) => {
-    if (index === 0 || index === tracks.yLines.length - 1) {
-      return [line];
-    }
-    return [line - GRID_GAP, line];
-  }));
+  const xLines = tracks.guideXLines ?? tracks.xLines;
+  const yLines = tracks.guideYLines ?? tracks.yLines;
 
   return [
-    ...xEdges.map((x, index) => ({
+    ...xLines.map((x, index) => ({
       key: `x-${index}`,
       x1: x,
       y1: 0,
       x2: x,
       y2: viewportHeight,
     })),
-    ...yEdges.map((y, index) => ({
+    ...yLines.map((y, index) => ({
       key: `y-${index}`,
       x1: 0,
       y1: y,
@@ -226,10 +343,6 @@ export function getGuideLines(tracks: TrackState, viewportWidth: number, viewpor
       y2: y,
     })),
   ];
-}
-
-function uniqueSortedEdges(values: number[]) {
-  return Array.from(new Set(values.map((value) => Math.round(value * 1000) / 1000))).sort((a, b) => a - b);
 }
 
 export function syncGridFrame(
@@ -271,46 +384,101 @@ export function lerp(start: number, end: number, progress: number) {
   return start + (end - start) * progress;
 }
 
+function tracksFromPanelRects(rects: Record<PanelKey, Rect>): TrackState {
+  const inset = FINAL_PANEL_INSET / 2;
+
+  return PANEL_SPECS.reduce<TrackState>(
+    (tracks, spec) => {
+      const rect = rects[spec.key];
+
+      tracks.xLines[spec.colStart] = rect.x - inset;
+      tracks.xLines[spec.colEnd] = rect.x + rect.width + inset;
+      tracks.yLines[spec.rowStart] = rect.y - inset;
+      tracks.yLines[spec.rowEnd] = rect.y + rect.height + inset;
+
+      return tracks;
+    },
+    { xLines: [], yLines: [] },
+  );
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
 export function bikePathData(width: number, height: number) {
-  const leftWheelX = width * 0.24;
-  const rightWheelX = width * 0.76;
-  const wheelY = height * 0.76;
-  const wheelR = height * 0.16;
+  const rearWheelX = width * 0.27;
+  const frontWheelX = width * 0.73;
+  const wheelY = height * 0.72;
+  const wheelR = height * 0.115;
 
-  const seatX = width * 0.42;
-  const seatY = height * 0.28;
-  const crankX = width * 0.51;
-  const crankY = height * 0.58;
-  const headX = width * 0.66;
-  const headY = height * 0.3;
-  const handleX = width * 0.8;
-  const handleY = height * 0.16;
+  const bottomBracketX = width * 0.5;
+  const bottomBracketY = height * 0.62;
+  const seatClusterX = width * 0.41;
+  const seatClusterY = height * 0.43;
+  const headTubeX = width * 0.63;
+  const headTubeY = height * 0.43;
+  const stemX = width * 0.69;
+  const stemY = height * 0.35;
+  const handleX = width * 0.78;
+  const handleY = height * 0.36;
+  const saddleLeftX = width * 0.36;
+  const saddleRightX = width * 0.46;
+  const saddleY = height * 0.39;
+  const pedalX = width * 0.53;
+  const pedalY = height * 0.7;
 
   return {
-    leftWheel: circlePath(leftWheelX, wheelY, wheelR),
-    rightWheel: circlePath(rightWheelX, wheelY, wheelR),
-    frame: [
-      `M ${leftWheelX} ${wheelY}`,
-      `L ${seatX} ${seatY}`,
-      `L ${headX} ${headY}`,
-      `L ${rightWheelX} ${wheelY}`,
-      `L ${crankX} ${crankY}`,
-      `L ${leftWheelX} ${wheelY}`,
-      `M ${crankX} ${crankY}`,
-      `L ${headX} ${headY}`,
-      `M ${crankX} ${crankY}`,
-      `L ${seatX} ${seatY}`,
-      `M ${seatX - width * 0.08} ${seatY}`,
-      `L ${seatX + width * 0.03} ${seatY}`,
-      `M ${headX} ${headY}`,
-      `L ${handleX} ${handleY}`,
-      `M ${handleX - width * 0.03} ${handleY}`,
-      `L ${handleX + width * 0.01} ${handleY + height * 0.1}`,
-    ].join(" "),
+    paths: [
+      circlePath(rearWheelX, wheelY, wheelR),
+      circlePath(frontWheelX, wheelY, wheelR),
+      [
+        `M ${rearWheelX} ${wheelY}`,
+        `L ${bottomBracketX} ${bottomBracketY}`,
+        `L ${frontWheelX} ${wheelY}`,
+        `M ${rearWheelX} ${wheelY}`,
+        `L ${seatClusterX} ${seatClusterY}`,
+        `L ${headTubeX} ${headTubeY}`,
+        `L ${bottomBracketX} ${bottomBracketY}`,
+        `L ${seatClusterX} ${seatClusterY}`,
+      ].join(" "),
+      [
+        `M ${headTubeX} ${headTubeY}`,
+        `L ${frontWheelX} ${wheelY}`,
+        `M ${headTubeX} ${headTubeY}`,
+        `L ${stemX} ${stemY}`,
+      ].join(" "),
+      [
+        `M ${stemX} ${stemY}`,
+        `C ${stemX + width * 0.035} ${stemY - height * 0.035} ${handleX + width * 0.018} ${handleY - height * 0.02} ${handleX} ${handleY}`,
+        `C ${handleX - width * 0.025} ${handleY + height * 0.045} ${handleX + width * 0.035} ${handleY + height * 0.06} ${handleX + width * 0.055} ${handleY + height * 0.012}`,
+      ].join(" "),
+      [
+        `M ${seatClusterX} ${seatClusterY}`,
+        `L ${saddleLeftX} ${saddleY}`,
+        `M ${saddleLeftX} ${saddleY}`,
+        `C ${saddleLeftX + width * 0.025} ${saddleY - height * 0.025} ${saddleRightX - width * 0.015} ${saddleY - height * 0.018} ${saddleRightX} ${saddleY}`,
+      ].join(" "),
+      [
+        `M ${bottomBracketX - wheelR * 0.18} ${bottomBracketY}`,
+        `a ${wheelR * 0.18} ${wheelR * 0.18} 0 1 0 ${wheelR * 0.36} 0`,
+        `a ${wheelR * 0.18} ${wheelR * 0.18} 0 1 0 ${-wheelR * 0.36} 0`,
+        `M ${bottomBracketX} ${bottomBracketY}`,
+        `L ${pedalX} ${pedalY}`,
+        `M ${pedalX - width * 0.018} ${pedalY}`,
+        `L ${pedalX + width * 0.03} ${pedalY}`,
+      ].join(" "),
+      [
+        `M ${rearWheelX} ${wheelY}`,
+        `L ${rearWheelX - wheelR * 0.62} ${wheelY - wheelR * 0.48}`,
+        `M ${rearWheelX} ${wheelY}`,
+        `L ${rearWheelX + wheelR * 0.56} ${wheelY + wheelR * 0.36}`,
+        `M ${frontWheelX} ${wheelY}`,
+        `L ${frontWheelX - wheelR * 0.48} ${wheelY + wheelR * 0.52}`,
+        `M ${frontWheelX} ${wheelY}`,
+        `L ${frontWheelX + wheelR * 0.56} ${wheelY - wheelR * 0.42}`,
+      ].join(" "),
+    ],
   };
 }
 
