@@ -1,8 +1,9 @@
 import { gsap } from "gsap";
 import { CustomEase } from "gsap/CustomEase";
 import { Flip } from "gsap/Flip";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-gsap.registerPlugin(CustomEase, Flip);
+gsap.registerPlugin(CustomEase, Flip, ScrollTrigger);
 
 export const LINE_DRAW_EASE = CustomEase.create(
   "line-draw-ease",

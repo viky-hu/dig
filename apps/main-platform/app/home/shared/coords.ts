@@ -1,22 +1,32 @@
 export const BRAND_BLUE = "#3152f4";
-export const GRID_COLOR = "rgba(49, 82, 244, 0.12)";
-export const VW = 1440;
-export const VH = 900;
+export const BASE_VW = 1440;
+export const BASE_VH = 900;
+export const GRID_GAP = 8;
+export const SCROLL_SHELL_VH = 340;
+export const MOBILE_BREAKPOINT = 1024;
 export const PHASE1_STROKE = 1.5;
+export const GRID_LINE_COLOR = "rgba(137, 174, 255, 0.48)";
 
-export const INTRO_COORDS = {
-  x1: 0.31 * VW,
-  x2: 0.69 * VW,
-  y1: 0.17 * VH,
-  y2: 0.83 * VH,
+export const INTRO_RECT_RATIOS = {
+  x1: 0.31,
+  x2: 0.69,
+  y1: 0.17,
+  y2: 0.83,
+} as const;
+
+export const FINAL_TRACK_RATIOS = {
+  columns: [19, 27, 6, 27, 19] as const,
+  rows: [43, 10, 47] as const,
 };
 
-export const COLLAPSE_COORDS = {
-  x1: 0.37 * VW,
-  x2: 0.63 * VW,
-  y1: 0.23 * VH,
-  y2: 0.83 * VH,
-};
-
-export const GRID_V = [0.08, 0.18, 0.3, 0.42, 0.58, 0.7, 0.82, 0.92].map((r) => r * VW);
-export const GRID_H = [0.06, 0.14, 0.28, 0.44, 0.56, 0.72, 0.86, 0.94].map((r) => r * VH);
+export const PANEL_COLORS = {
+  framework: "#2f3d57",
+  iconography: "#B4F239",
+  voiceTone: "#F7D64A",
+  color: "#FF8A1D",
+  centerCore: BRAND_BLUE,
+  logo: "#4BC7D8",
+  imagery: "#8D1B55",
+  typography: "#FF4B22",
+  motion: "#C9A9EB",
+} as const;

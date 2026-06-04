@@ -1,372 +1,351 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import {
-  BRAND_BLUE,
-  COLLAPSE_COORDS,
-  GRID_COLOR,
-  GRID_H,
-  GRID_V,
-  INTRO_COORDS,
-  PHASE1_STROKE,
-  VH,
-  VW,
+  BASE_VH,
+  BASE_VW,
+  GRID_LINE_COLOR,
+  MOBILE_BREAKPOINT,
+  SCROLL_SHELL_VH,
 } from "./shared/coords";
 import { LINE_DRAW_EASE, LOGO_DRAW_EASE } from "./shared/animation";
 import {
-  getLogoDiamonds,
-  logoPath,
-  updateClipRect,
-  updateLines,
-  updateLogoPosition,
-  updatePanelFill,
-  updatePanelLayout,
+  bikePathData,
+  computeSceneGeometry,
+  getGuideLines,
+  getIntroCopy,
+  interpolateTracks,
+  rectToStyle,
+  syncGridFrame,
+  type PanelKey,
 } from "./utils";
 
 export function HomeIntroPage() {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const coordsRef = useRef({ ...INTRO_COORDS });
-  const canTriggerRef = useRef(false);
-  const playedRef = useRef(false);
-  const [inverted, setInverted] = useState(false);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
+  const lineSvgRef = useRef<SVGSVGElement>(null);
+  const centerPanelRef = useRef<HTMLDivElement>(null);
+  const introCopyRef = useRef<HTMLDivElement>(null);
+  const hintRef = useRef<HTMLDivElement>(null);
+  const bikeRef = useRef<SVGSVGElement>(null);
+
+  const [viewportSize, setViewportSize] = useState({
+    width: BASE_VW,
+    height: BASE_VH,
+  });
+
+  useEffect(() => {
+    const updateViewport = () => {
+      setViewportSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+    return () => window.removeEventListener("resize", updateViewport);
+  }, []);
+
+  const isDesktop = viewportSize.width >= MOBILE_BREAKPOINT;
+  const geometry = useMemo(
+    () => computeSceneGeometry(viewportSize.width, viewportSize.height),
+    [viewportSize.height, viewportSize.width],
+  );
 
   useLayoutEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
+    const shell = shellRef.current;
+    const viewport = viewportRef.current;
+    const world = worldRef.current;
+    const lineSvg = lineSvgRef.current;
+    const centerPanel = centerPanelRef.current;
+    const introCopy = introCopyRef.current;
+    const hint = hintRef.current;
+    const bike = bikeRef.current;
 
-    const coords = coordsRef.current;
-    const mainLines = svg.querySelectorAll<SVGLineElement>(".main-line");
-    const logoLines = svg.querySelectorAll<SVGPathElement>(".logo-stroke");
-    const gridLines = svg.querySelectorAll<SVGLineElement>(".ref-grid");
-    const clipRect = svg.querySelector<SVGRectElement>("#clip-rect");
-    const panelRect = svg.querySelector<SVGRectElement>("#panel-fill");
-    const introPanel = svg.querySelector<SVGForeignObjectElement>("#intro-panel");
-    const loginPanel = svg.querySelector<SVGForeignObjectElement>("#login-panel");
-    const hintLayer = svg.querySelector<SVGGElement>("#hint-layer");
-    const logoGroup = svg.querySelector<SVGGElement>("#logo-group");
-    const logoFill = svg.querySelector<SVGGElement>("#logo-fill");
-    const logoOutline = svg.querySelector<SVGGElement>("#logo-outline");
-
-    mainLines.forEach((line) => {
-      const len = line.getTotalLength();
-      gsap.set(line, { strokeDasharray: len, strokeDashoffset: len });
-    });
-
-    logoLines.forEach((path) => {
-      const len = path.getTotalLength();
-      gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
-    });
-
-    gsap.set(gridLines, { opacity: 0.55 });
-    gsap.set(introPanel, { opacity: 0 });
-    gsap.set(hintLayer, { opacity: 0 });
-    gsap.set(loginPanel, { opacity: 0 });
-    if (logoFill) gsap.set(logoFill, { fillOpacity: 0 });
-    if (panelRect) {
-      gsap.set(panelRect, {
-        fill: "#ffffff",
-        attr: {
-          x: (coords.x1 + coords.x2) / 2,
-          y: (coords.y1 + coords.y2) / 2,
-          width: 0,
-          height: 0,
-        },
-      });
+    if (!shell || !viewport || !world || !lineSvg || !centerPanel || !introCopy || !hint || !bike) {
+      return;
     }
 
-    updateLines(svg, coords);
-    updateClipRect(clipRect, coords);
-    updatePanelLayout(introPanel, loginPanel, coords);
-    updateLogoPosition(logoGroup, coords);
+    const ctx = gsap.context(() => {
+      const panels = world.querySelectorAll<HTMLElement>(".home-grid-panel");
+      const orbitOnePanels = world.querySelectorAll<HTMLElement>('[data-orbit="one"]');
+      const orbitTwoPanels = world.querySelectorAll<HTMLElement>('[data-orbit="two"]');
+      const lines = lineSvg.querySelectorAll<SVGLineElement>(".home-grid-line");
+      const bikePaths = bike.querySelectorAll<SVGPathElement>(".home-bike-path");
 
-    const introTl = gsap.timeline({
-      defaults: { ease: "power2.out" },
-      onComplete: () => {
-        canTriggerRef.current = true;
-      },
-    });
+      const renderProgress = (progress: number) => {
+        const tracks = interpolateTracks(geometry.startTracks, geometry.endTracks, progress);
+        syncGridFrame(panels, lines, tracks, geometry.viewportWidth, geometry.viewportHeight);
+      };
 
-    introTl.to(
-      mainLines,
-      {
-        strokeDashoffset: 0,
-        duration: 1.08,
-        ease: LINE_DRAW_EASE,
-        stagger: 0.08,
-      },
-      0,
-    );
+      renderProgress(isDesktop ? 0 : 1);
 
-    introTl.to(
-      logoLines,
-      {
-        strokeDashoffset: 0,
-        duration: 0.94,
-        ease: LOGO_DRAW_EASE,
-        stagger: 0.04,
-      },
-      0.12,
-    );
+      if (!isDesktop) {
+        gsap.set(panels, { autoAlpha: 1 });
+        gsap.set(lines, { autoAlpha: 0 });
+        gsap.set(introCopy, { autoAlpha: 0 });
+        gsap.set(hint, { autoAlpha: 0 });
+        gsap.set(bikePaths, { autoAlpha: 1, strokeDasharray: "none", strokeDashoffset: 0 });
+        return;
+      }
 
-    if (panelRect) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+
+      lines.forEach((line) => {
+        const len = line.getTotalLength();
+        gsap.set(line, {
+          strokeDasharray: len,
+          strokeDashoffset: len,
+          autoAlpha: 1,
+        });
+      });
+
+      bikePaths.forEach((path) => {
+        const len = path.getTotalLength();
+        gsap.set(path, {
+          strokeDasharray: len,
+          strokeDashoffset: len,
+          autoAlpha: 0,
+        });
+      });
+
+      gsap.set(introCopy, { autoAlpha: 0, y: 18 });
+      gsap.set(hint, { autoAlpha: 0, y: -8 });
+      gsap.set(orbitOnePanels, { autoAlpha: 0 });
+      gsap.set(orbitTwoPanels, { autoAlpha: 0 });
+      gsap.set(centerPanel, { autoAlpha: 0, scale: 0.972, transformOrigin: "50% 50%" });
+
+      const introTl = gsap.timeline({ defaults: { ease: "power2.out" } });
       introTl.to(
-        panelRect,
+        lines,
         {
-          attr: {
-            x: coords.x1,
-            y: coords.y1,
-            width: coords.x2 - coords.x1,
-            height: coords.y2 - coords.y1,
-          },
+          strokeDashoffset: 0,
+          duration: 1.08,
+          ease: LINE_DRAW_EASE,
+          stagger: 0.045,
+        },
+        0,
+      );
+      introTl.to(
+        centerPanel,
+        {
+          autoAlpha: 1,
+          scale: 1,
           duration: 0.72,
           ease: "power3.out",
         },
-        0.4,
+        0.28,
       );
-    }
-
-    if (logoFill) {
-      introTl.to(logoFill, { fillOpacity: 1, duration: 0.35 }, 0.74);
-    }
-
-    introTl.fromTo(
-      introPanel,
-      {
-        opacity: 0,
-        y: coords.y1 + 20,
-      },
-      {
-        opacity: 1,
-        y: coords.y1 + 16,
-        duration: 0.42,
-        ease: "power2.out",
-      },
-      0.9,
-    );
-
-    introTl.to(hintLayer, { opacity: 1, duration: 0.28 }, 1.1);
-
-    const stage2Tl = gsap.timeline({ paused: true, defaults: { ease: "power3.inOut" } });
-
-    stage2Tl.to(
-      coords,
-      {
-        ...COLLAPSE_COORDS,
-        duration: 1.02,
-        onUpdate: () => {
-          updateLines(svg, coords);
-          updateClipRect(clipRect, coords);
-          updatePanelFill(panelRect, coords);
-          updatePanelLayout(introPanel, loginPanel, coords);
-          updateLogoPosition(logoGroup, coords);
+      introTl.to(
+        introCopy,
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.42,
         },
-      },
-      0,
-    );
+        0.76,
+      );
+      introTl.to(
+        hint,
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.28,
+        },
+        0.96,
+      );
 
-    if (panelRect) {
-      stage2Tl.to(panelRect, { fill: BRAND_BLUE, duration: 0.54 }, 0.05);
-    }
-    stage2Tl.to(introPanel, { opacity: 0, duration: 0.22 }, 0.12);
-    stage2Tl.to(loginPanel, { opacity: 1, duration: 0.34 }, 0.24);
-    stage2Tl.to(hintLayer, { opacity: 0, duration: 0.18 }, 0.03);
-    if (logoOutline) {
-      stage2Tl.to(logoOutline, { stroke: "#ffffff", duration: 0.45 }, 0.08);
-    }
-    if (logoFill) {
-      stage2Tl.to(logoFill.querySelectorAll("path"), { fill: "#ffffff", duration: 0.45 }, 0.08);
-    }
-    stage2Tl.call(() => setInverted(true), [], 0.06);
+      let scrollTl: gsap.core.Timeline | undefined;
+      introTl.call(() => {
+        const state = { progress: 0 };
 
-    const playStage2 = () => {
-      if (!canTriggerRef.current || playedRef.current) return;
-      playedRef.current = true;
-      stage2Tl.play(0);
-    };
+        scrollTl = gsap.timeline({
+          defaults: { ease: "none" },
+          scrollTrigger: {
+            trigger: shell,
+            start: "top top",
+            end: () => `+=${window.innerHeight * 2.6}`,
+            pin: viewport,
+            scrub: true,
+            invalidateOnRefresh: true,
+            anticipatePin: 1,
+          },
+        });
 
-    const onWheel = (event: WheelEvent) => {
-      if (event.deltaY !== 0) playStage2();
-    };
-    const onClick = () => playStage2();
+        scrollTl.to(
+          state,
+          {
+            progress: 1,
+            duration: 1,
+            onUpdate: () => renderProgress(state.progress),
+          },
+          0,
+        );
+        scrollTl.to(
+          orbitOnePanels,
+          {
+            autoAlpha: 1,
+            duration: 0.18,
+          },
+          0.04,
+        );
+        scrollTl.to(
+          orbitTwoPanels,
+          {
+            autoAlpha: 1,
+            duration: 0.18,
+          },
+          0.28,
+        );
+        scrollTl.to(
+          introCopy,
+          {
+            autoAlpha: 0,
+            y: -14,
+            duration: 0.18,
+          },
+          0.08,
+        );
+        scrollTl.to(
+          hint,
+          {
+            autoAlpha: 0,
+            y: 10,
+            duration: 0.14,
+          },
+          0.08,
+        );
+        scrollTl.to(
+          bikePaths,
+          {
+            autoAlpha: 1,
+            strokeDashoffset: 0,
+            duration: 0.24,
+            ease: LOGO_DRAW_EASE,
+            stagger: 0.03,
+          },
+          0.42,
+        );
+        scrollTl.to(
+          lines,
+          {
+            autoAlpha: 0.22,
+            duration: 0.18,
+          },
+          0.82,
+        );
+      });
 
-    window.addEventListener("wheel", onWheel, { passive: true });
-    window.addEventListener("click", onClick);
-    introTl.play(0);
+      return () => {
+        introTl.kill();
+        scrollTl?.kill();
+      };
+    }, viewport);
 
-    return () => {
-      introTl.kill();
-      stage2Tl.kill();
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("click", onClick);
-    };
-  }, []);
+    return () => ctx.revert();
+  }, [geometry, isDesktop]);
+
+  const guideLines = getGuideLines(geometry.initialTracks, geometry.viewportWidth, geometry.viewportHeight);
+  const introCopy = getIntroCopy();
+  const bikeWidth = Math.max(geometry.centerCoreRect.width, geometry.initialCenterRect.width);
+  const bikeHeight = Math.max(geometry.centerCoreRect.height, geometry.initialCenterRect.height);
+  const bike = bikePathData(bikeWidth, bikeHeight);
 
   return (
-    <main className="login-svg-page">
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${VW} ${VH}`}
-        preserveAspectRatio="xMidYMid slice"
-        className="login-svg-canvas"
+    <main className={isDesktop ? "home-scroll-page" : "home-static-page"}>
+      <div
+        ref={shellRef}
+        className="home-scroll-shell"
+        style={{ height: isDesktop ? `${SCROLL_SHELL_VH}vh` : "100vh" }}
       >
-        <defs>
-          <clipPath id="text-clip">
-            <rect
-              id="clip-rect"
-              x={INTRO_COORDS.x1}
-              y={INTRO_COORDS.y1}
-              width={INTRO_COORDS.x2 - INTRO_COORDS.x1}
-              height={INTRO_COORDS.y2 - INTRO_COORDS.y1}
-            />
-          </clipPath>
-        </defs>
-
-        {GRID_V.map((x, i) => (
-          <line
-            key={`gv-${i}`}
-            className="ref-grid"
-            x1={x}
-            y1={0}
-            x2={x}
-            y2={VH}
-            stroke={GRID_COLOR}
-            strokeWidth={1}
-          />
-        ))}
-        {GRID_H.map((y, i) => (
-          <line
-            key={`gh-${i}`}
-            className="ref-grid"
-            x1={0}
-            y1={y}
-            x2={VW}
-            y2={y}
-            stroke={GRID_COLOR}
-            strokeWidth={1}
-          />
-        ))}
-
-        <rect
-          id="panel-fill"
-          x={INTRO_COORDS.x1}
-          y={INTRO_COORDS.y1}
-          width={INTRO_COORDS.x2 - INTRO_COORDS.x1}
-          height={INTRO_COORDS.y2 - INTRO_COORDS.y1}
-          fill="#ffffff"
-        />
-
-        <line
-          className="main-line"
-          id="line-left"
-          x1={INTRO_COORDS.x1}
-          y1={0}
-          x2={INTRO_COORDS.x1}
-          y2={VH}
-          stroke={BRAND_BLUE}
-          strokeWidth={PHASE1_STROKE}
-        />
-        <line
-          className="main-line"
-          id="line-right"
-          x1={INTRO_COORDS.x2}
-          y1={0}
-          x2={INTRO_COORDS.x2}
-          y2={VH}
-          stroke={BRAND_BLUE}
-          strokeWidth={PHASE1_STROKE}
-        />
-        <line
-          className="main-line"
-          id="line-top"
-          x1={0}
-          y1={INTRO_COORDS.y1}
-          x2={VW}
-          y2={INTRO_COORDS.y1}
-          stroke={BRAND_BLUE}
-          strokeWidth={PHASE1_STROKE}
-        />
-        <line
-          className="main-line"
-          id="line-bottom"
-          x1={0}
-          y1={INTRO_COORDS.y2}
-          x2={VW}
-          y2={INTRO_COORDS.y2}
-          stroke={BRAND_BLUE}
-          strokeWidth={PHASE1_STROKE}
-        />
-
-        <g id="logo-group">
-          <g id="logo-outline">
-            {getLogoDiamonds().map((diamond, idx) => (
-              <path
-                key={`logo-outline-${idx}`}
-                className="logo-stroke"
-                d={logoPath(diamond.cx, diamond.cy, diamond.size)}
-                fill="none"
-                stroke={BRAND_BLUE}
-                strokeWidth={1.5}
-              />
-            ))}
-          </g>
-          <g id="logo-fill">
-            {getLogoDiamonds().map((diamond, idx) => (
-              <path
-                key={`logo-fill-${idx}`}
-                d={logoPath(diamond.cx, diamond.cy, diamond.size)}
-                fill={BRAND_BLUE}
-              />
-            ))}
-          </g>
-        </g>
-
-        <g clipPath="url(#text-clip)">
-          <foreignObject
-            id="intro-panel"
-            x={INTRO_COORDS.x1 + 16}
-            y={INTRO_COORDS.y1 + 25}
-            width={INTRO_COORDS.x2 - INTRO_COORDS.x1 - 24}
-            height={INTRO_COORDS.y2 - INTRO_COORDS.y1 - 32}
+        <div ref={viewportRef} className="home-viewport">
+          <div
+            ref={worldRef}
+            className={isDesktop ? "home-world-stage" : "home-static-stage"}
+            style={{
+              width: viewportSize.width,
+              height: viewportSize.height,
+            }}
           >
-            <div className={`svg-text-content ${inverted ? "is-inverted" : ""}`}>
-              <div className="svg-intro">
-                <h1 className="svg-headline">
-                  <span className="svg-headline-main">
-                    &nbsp;&nbsp;上海摩拜单车
-                  </span>
-                  <br />
-                  <span className="svg-headline-sub">
-                    ——数据挖掘分析报告
-                  </span>
-                </h1>
-              </div>
-            </div>
-          </foreignObject>
-          <foreignObject
-            id="login-panel"
-            x={INTRO_COORDS.x1 + 16}
-            y={INTRO_COORDS.y1 + 16}
-            width={INTRO_COORDS.x2 - INTRO_COORDS.x1 - 32}
-            height={INTRO_COORDS.y2 - INTRO_COORDS.y1 - 32}
-          >
-            <div className="svg-text-content is-inverted" aria-hidden="true">
-              <div className="svg-empty-panel" />
-            </div>
-          </foreignObject>
-        </g>
+            <svg
+              ref={lineSvgRef}
+              className="home-grid-lines"
+              viewBox={`0 0 ${viewportSize.width} ${viewportSize.height}`}
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              {guideLines.map((line) => (
+                <line
+                  key={line.key}
+                  className="home-grid-line"
+                  x1={line.x1}
+                  y1={line.y1}
+                  x2={line.x2}
+                  y2={line.y2}
+                  stroke={GRID_LINE_COLOR}
+                />
+              ))}
+            </svg>
 
-        <g id="hint-layer">
-          <text
-            x={INTRO_COORDS.x2 - 22}
-            y={INTRO_COORDS.y2 - 14}
-            textAnchor="end"
-            className="svg-scroll-hint"
-          >
-            ˅˅
-          </text>
-        </g>
-      </svg>
+            {geometry.initialPanels.map((panel) => {
+              const isCenter = panel.key === "centerCore";
+              return (
+                <div
+                  key={panel.key}
+                  ref={isCenter ? centerPanelRef : undefined}
+                  data-panel={panel.key}
+                  data-orbit={getPanelOrbit(panel.key)}
+                  className={`home-grid-panel${isCenter ? " home-center-panel" : ""}`}
+                  style={{
+                    ...rectToStyle(panel.rect),
+                    backgroundColor: panel.color,
+                    opacity: isDesktop ? 0 : 1,
+                  }}
+                >
+                  {isCenter && (
+                    <>
+                      <div ref={introCopyRef} className="home-intro-copy">
+                        <h1 className="home-intro-title">{introCopy.title}</h1>
+                        <p className="home-intro-subtitle">{introCopy.subtitle}</p>
+                      </div>
+
+                      <svg
+                        ref={bikeRef}
+                        className="home-intro-bike"
+                        viewBox={`0 0 ${bikeWidth} ${bikeHeight}`}
+                        aria-hidden="true"
+                      >
+                        <path className="home-bike-path" d={bike.leftWheel} />
+                        <path className="home-bike-path" d={bike.rightWheel} />
+                        <path className="home-bike-path" d={bike.frame} />
+                      </svg>
+
+                      <div ref={hintRef} className="home-scroll-hint">
+                        {introCopy.hint}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </main>
   );
+}
+
+function getPanelOrbit(panel: PanelKey) {
+  if (panel === "voiceTone" || panel === "color" || panel === "logo" || panel === "imagery") {
+    return "one";
+  }
+
+  if (panel === "framework" || panel === "iconography" || panel === "typography" || panel === "motion") {
+    return "two";
+  }
+
+  return undefined;
 }

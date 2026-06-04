@@ -2,101 +2,161 @@
 @import "@fontsource/noto-sans-sc";
 @import "tailwindcss";
 
-html, body {
+html,
+body {
   margin: 0;
   padding: 0;
-  background: #0a0a0a;
-  color: #e5e5e5;
-  font-family: "Noto Sans SC", system-ui, sans-serif;
   min-height: 100vh;
+  background: #ffffff;
+  color: #111827;
+  font-family: "Noto Sans SC", system-ui, sans-serif;
+}
+
+body {
+  overflow-x: hidden;
 }
 
 * {
   box-sizing: border-box;
 }
 
-.login-svg-page {
-  --w1-font-family: "DingTalk JinBuTi", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+.home-scroll-page,
+.home-static-page {
+  --home-font-family: "DingTalk JinBuTi", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   position: relative;
-  isolation: isolate;
-  width: 100vw;
+  width: 100%;
+  background: #ffffff;
+  font-family: var(--home-font-family);
+}
+
+.home-scroll-page *,
+.home-scroll-page *::before,
+.home-scroll-page *::after,
+.home-static-page *,
+.home-static-page *::before,
+.home-static-page *::after {
+  font-family: var(--home-font-family);
+}
+
+.home-scroll-shell {
+  position: relative;
+  width: 100%;
+}
+
+.home-viewport {
+  position: relative;
+  width: 100%;
   height: 100vh;
   overflow: hidden;
   background: #ffffff;
-  font-family: var(--w1-font-family);
 }
 
-.login-svg-page,
-.login-svg-page *,
-.login-svg-page *::before,
-.login-svg-page *::after {
-  font-family: var(--w1-font-family) !important;
-}
-
-.login-svg-canvas {
+.home-world-stage,
+.home-static-stage {
   position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.home-grid-lines {
+  position: absolute;
+  inset: 0;
   z-index: 0;
+  pointer-events: none;
+}
+
+.home-grid-line {
+  stroke-width: 1.1;
+  vector-effect: non-scaling-stroke;
+}
+
+.home-grid-panel {
+  position: absolute;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.home-center-panel {
+  z-index: 2;
+}
+
+.home-intro-bike,
+.home-grid-lines {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.svg-text-content {
-  width: 100%;
-  height: 100%;
+.home-intro-bike {
+  overflow: visible;
+}
+
+.home-bike-path {
+  fill: none;
+  stroke: #ffffff;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.home-intro-copy {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  padding: clamp(14px, 1.1vw, 20px);
-  box-sizing: border-box;
-  font-family: "DingTalk JinBuTi", system-ui, sans-serif;
-}
-
-.svg-intro {
-  color: #3152f4;
-}
-
-.svg-headline {
-  margin: 0;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: clamp(8px, 0.9vw, 16px);
-  line-height: 1.2;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  max-width: none;
-  color: #3152f4;
-}
-
-.svg-headline-main {
-  display: block;
-  font-size: clamp(46px, 2.7vw, 78px);
-  line-height: 1.04;
-}
-
-.svg-headline-sub {
-  display: block;
-  padding-left: clamp(18px, 1vw, 28px);
-  font-size: clamp(28px, 1.62vw, 44px);
-  line-height: 1.12;
-  white-space: normal;
-}
-
-.svg-text-content.is-inverted .svg-headline {
+  gap: clamp(10px, 1vw, 18px);
+  padding: clamp(28px, 2.2vw, 38px);
   color: #ffffff;
 }
 
-.svg-empty-panel {
-  width: 100%;
-  height: 100%;
+.home-intro-title {
+  margin: 0;
+  font-size: clamp(48px, 4vw, 86px);
+  line-height: 1.03;
+  letter-spacing: 0;
+  font-weight: 650;
 }
 
-.svg-scroll-hint {
-  fill: #3152f4;
-  font-size: 23px;
-  letter-spacing: -0.08em;
-  font-weight: 600;
-  user-select: none;
+.home-intro-subtitle {
+  margin: 0;
+  padding-left: clamp(18px, 1vw, 28px);
+  font-size: clamp(30px, 2vw, 46px);
+  line-height: 1.12;
+  letter-spacing: 0;
+}
+
+.home-intro-bike {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.home-scroll-hint {
+  position: absolute;
+  right: 22px;
+  bottom: 14px;
+  z-index: 3;
+  color: #ffffff;
   font-family: "Michroma", system-ui, sans-serif;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+.home-static-page {
+  min-height: 100svh;
+}
+
+.home-static-page .home-scroll-shell {
+  height: 100svh;
+}
+
+.home-static-stage {
+  min-height: 100svh;
 }

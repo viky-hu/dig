@@ -167,3 +167,93 @@ gsap.timeline({
 | Imagery | 4 | 3 | #9C2565 | 1 |
 | Typography | 5 | 1 / span 2 | #F1382A | 1 |
 | Motion | 5 | 3 | #D7BCEB | 1 |
+
+
+# codex的结论
+
+这份 move.md 的核心诉求，我的判断很明确：不该全盘推翻现有第一窗口，但也不能在现有结构上“小修小补”。最明智的路线是“保留语言，重写骨架”。
+结论
+现有首页在 HomeIntroPage.tsx (line 34) 已经具备三项很有价值的资产：SVG 线条绘制、蓝白核心区反转、基于坐标的 GSAP 更新函数。但它目前还不是 move.md 要的那种“ScrollTrigger 驱动的镜头后退式九宫格画布”：
+现在的二阶段动画是一次性 wheel/click 触发，不是可回滚的 scrub 滚动轴，HomeIntroPage.tsx (line 182)。
+现在只是在改 4 条主线和中心面板坐标，不是在驱动整张画布做摄影机式缩放，utils.ts (line 20)。
+现在的 GRID_V / GRID_H 只是参考线，不是 move.md 里那套 5 列 3 行 9 模块终态网格，coords.ts (line 21)。
+我建议的取舍
+保留：
+现有蓝白核心区的视觉语气，不颠覆。
+现有 SVG 线条 draw-in 的做法和 easing。
+现有“中心块白底蓝字 -> 蓝底白 logo”的转场逻辑。
+重构：
+页面骨架改成 scroll-spacer + pinned viewport + stage canvas。
+终态布局改成 HTML/CSS Grid 承载 9 块，SVG overlay 专门负责线条、轮廓、logo、动态描边。
+滚轮逻辑改成 ScrollTrigger scrub + pin，不再手写一次性 wheel 事件。
+中心块改成“嵌套卡片”模型：初始大，终态缩成 move.md 指定的小中心格。
+最关键的几何结论
+move.md 给的终态比例是：
+列：19.5fr 33.5fr 4fr 23.5fr 19.5fr
+行：45fr 7fr 48fr
+gap：2px
+按 1440×900 推导，终态中心格真实尺寸大约只有：
+宽 57.28px
+高 62.72px
+这意味着如果“直接把最终中心格放大到满屏”，纯靠整张画布 scale(3.5~4) 根本不够，甚至要 14~25 倍才接近满屏，代价太大，也不稳。所以不能把“初始满屏蓝白区”理解成“最终中心格的直接放大版”。
+更重要的是，这套非对称列宽会让中心格天然偏右。按 1440×900 推导，中心格几何中心约在：
+x = 791.6
+y = 436.56
+而视口中心是：
+x = 720
+y = 450
+也就是说，如果我们简单对整张 viewport 大小的 grid 用 transform-origin: center center，中心格不会真的锁在屏幕中央。这是这次方案里最大的隐藏难点。
+因此，正确架构不是“9 块自己飞”，而是“摄影机退后”
+我建议这样实现：
+9 个模块从第一帧起就放在最终网格坐标上，不给它们各自写复杂 x/y 飞行动画。
+真正移动的是父级 stage，用 translate(cameraX, cameraY) scale(cameraScale) 做镜头运动。
+中心蓝白区不是直接等于最终中心格，而是在中心格里再嵌一个 core card，它自己做一次 local scale 从大到小的内缩。
+这样就能同时满足：终态严格落到 move.md 的 5×3 网格。
+初态保留你现在这块成熟的蓝白主视觉。
+视觉上仍然是“镜头从特写退到全景”。
+
+可直接落地的终态坐标蓝图
+以 viewport W × H 为基准：
+availW = W - 8
+availH = H - 4
+c1 = 0.195 * availW
+c2 = 0.335 * availW
+c3 = 0.04 * availW
+c4 = 0.235 * availW
+c5 = 0.195 * availW
+r1 = 0.45 * availH
+r2 = 0.07 * availH
+r3 = 0.48 * availH
+1440×900 下的终态模块边界建议按这套数：
+Framework: x 0 -> 279.24, y 0 -> 467.92
+Iconography: x 0 -> 279.24, y 469.92 -> 900
+Voice & Tone: x 281.24 -> 820.24, y 0 -> 403.2
+Color: x 281.24 -> 820.24, y 405.2 -> 900
+Center Core: x 762.96 -> 820.24, y 405.2 -> 467.92
+Logo: x 822.24 -> 1158.76, y 0 -> 467.92
+Imagery: x 822.24 -> 1158.76, y 469.92 -> 900
+Typography: x 1160.76 -> 1440, y 0 -> 467.92
+Motion: x 1160.76 -> 1440, y 469.92 -> 900
+初始态与最终态我建议这样定
+初始态：
+stage scale 约 4
+camera offset 先把终态中心格重新对齐到视口中心
+8 个彩块都已经在网格里，但因为父级镜头太近，几乎都在屏外
+中心 core card 再额外做 local scale ≈ 2.35
+这样中心蓝白区视觉大小会接近你当前实现，而不是变成一颗只有 200 多像素的小块
+最终态：
+stage scale = 1
+core card local scale = 1
+只保留白色自行车线稿 logo
+9 块完整成型，缝隙就是白色“线条”
+线条和画布的职责也要分清
+Grid panels：只负责色块与终态排版
+SVG overlay：负责蓝色主线、中心块轮廓、logo 线稿、滚动中的描边强化
+GSAP：只驱动 camera、core card、line stroke/fade
+不建议做 9 个独立 canvas；推荐 1 个 grid DOM + 1 个 SVG overlay + 可选 1 个背景 canvas
+我对“蓝白区域是否颠覆”的决策
+不颠覆，但降级它的“页面主骨架”身份。
+它应该保留为“镜头特写阶段的中心卡片”，而不是继续充当整页结构本身。这样既保住你已经成熟的视觉资产，又能把它自然缩到 move.md 要的最终中心格尺寸。
+还需要注意两件小事：
+当前首页里中文文案和 metadata 存在编码异常，后面正式改造前要一并修掉，HomeIntroPage.tsx (line 336) 和 layout.tsx (line 6)。
+实现时我会按官方建议组织滚动与清理逻辑，主要参考 ScrollTrigger、GSAP React guide、MDN will-change。
