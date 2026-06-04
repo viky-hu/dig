@@ -1,0 +1,17 @@
+{
+  "name": "@dig/config-eslint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./next": "./next.js",
+    "./library": "./library.js"
+  },
+  "dependencies": {
+    "@eslint/js": "9.39.1",
+    "@next/eslint-plugin-next": "16.2.6",
+    "eslint": "10.4.1",
+    "globals": "16.5.0",
+    "typescript-eslint": "8.46.2"
+  }
+}

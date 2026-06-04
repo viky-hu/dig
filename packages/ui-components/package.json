@@ -1,0 +1,35 @@
+{
+  "name": "@dig/ui-components",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./product-window": "./src/product-window/index.ts",
+    ".": "./src/index.ts"
+  },
+  "imports": {
+    "#*": "./src/*"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "@gsap/react": ">=2.0.0",
+    "gsap": ">=3.0.0",
+    "ogl": ">=1.0.0",
+    "postprocessing": ">=6.0.0",
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "three": ">=0.150.0"
+  },
+  "devDependencies": {
+    "@dig/config-eslint": "workspace:*",
+    "@dig/typescript-config": "workspace:*",
+    "@types/node": "25.9.1",
+    "@types/react": "19.2.15",
+    "@types/react-dom": "19.2.3",
+    "@types/three": "^0.183.1",
+    "eslint": "10.4.1",
+    "typescript": "6.0.3"
+  }
+}

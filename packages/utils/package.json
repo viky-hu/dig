@@ -1,0 +1,23 @@
+{
+  "name": "@dig/utils",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./math": "./src/math.ts",
+    "./random": "./src/random.ts",
+    ".": "./src/index.ts"
+  },
+  "imports": {
+    "#*": "./src/*"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@dig/config-eslint": "workspace:*",
+    "@dig/typescript-config": "workspace:*",
+    "eslint": "10.4.1",
+    "typescript": "6.0.3"
+  }
+}
