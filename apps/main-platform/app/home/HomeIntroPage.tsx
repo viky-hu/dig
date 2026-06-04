@@ -2,7 +2,6 @@
 
 import { useLayoutEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { BeamsBackground } from "../beams-background";
 import {
   BRAND_BLUE,
   COLLAPSE_COORDS,
@@ -27,7 +26,6 @@ import {
 
 export function HomeIntroPage() {
   const svgRef = useRef<SVGSVGElement>(null);
-  const beamsLayerRef = useRef<HTMLDivElement>(null);
   const coordsRef = useRef({ ...INTRO_COORDS });
   const canTriggerRef = useRef(false);
   const playedRef = useRef(false);
@@ -49,7 +47,6 @@ export function HomeIntroPage() {
     const logoGroup = svg.querySelector<SVGGElement>("#logo-group");
     const logoFill = svg.querySelector<SVGGElement>("#logo-fill");
     const logoOutline = svg.querySelector<SVGGElement>("#logo-outline");
-    const beamsLayer = beamsLayerRef.current;
 
     mainLines.forEach((line) => {
       const len = line.getTotalLength();
@@ -65,7 +62,6 @@ export function HomeIntroPage() {
     gsap.set(introPanel, { opacity: 0 });
     gsap.set(hintLayer, { opacity: 0 });
     gsap.set(loginPanel, { opacity: 0 });
-    if (beamsLayer) gsap.set(beamsLayer, { opacity: 0.17 });
     if (logoFill) gsap.set(logoFill, { fillOpacity: 0 });
     if (panelRect) {
       gsap.set(panelRect, {
@@ -208,18 +204,6 @@ export function HomeIntroPage() {
 
   return (
     <main className="login-svg-page">
-      <div ref={beamsLayerRef} className="login-beams-layer" aria-hidden="true">
-        <BeamsBackground
-          beamWidth={2.4}
-          beamHeight={17}
-          beamNumber={10}
-          lightColor="#4a68ff"
-          speed={0.85}
-          noiseIntensity={1.05}
-          scale={0.22}
-          rotation={18}
-        />
-      </div>
       <svg
         ref={svgRef}
         viewBox={`0 0 ${VW} ${VH}`}
@@ -348,11 +332,13 @@ export function HomeIntroPage() {
             <div className={`svg-text-content ${inverted ? "is-inverted" : ""}`}>
               <div className="svg-intro">
                 <h1 className="svg-headline">
-                  <span className="svg-headline-main">&nbsp;&nbsp;密态智图</span>
+                  <span className="svg-headline-main">
+                    &nbsp;&nbsp;上海摩拜单车
+                  </span>
                   <br />
-                  <br />
-                  <br />
-                  <span className="svg-headline-sub">——联邦知识图谱协同检索系统</span>
+                  <span className="svg-headline-sub">
+                    ——数据挖掘分析报告
+                  </span>
                 </h1>
               </div>
             </div>

@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import "./fonts/ding-talk-jin-bu-ti/font.css";
 
 export const metadata: Metadata = {
-  title: "DIG | 上海摩拜单车数据挖掘展示平台",
-  description: "基于数据挖掘结果的共享单车出行规律可视化展示平台。",
+  title: "DIG | 上海摩拜单车数据挖掘分析报告",
+  description: "上海摩拜单车数据挖掘分析报告。",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
