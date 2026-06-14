@@ -177,6 +177,7 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
           stagger: 0.025,
           onComplete: () => {
             isIconReadyRef.current = true;
+            transition.completeWindowOpen();
           },
         },
         fromHome ? 0.68 : 0.3,
@@ -257,13 +258,15 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
     const openingBikePaths = openingBikeGroup.querySelectorAll<SVGPathElement>(".insight-handoff-bike-path");
     gsap.killTweensOf([menuLines, bikePaths, openingBikeGroup, openingBikePaths]);
     gsap.set(openingBikeGroup, { autoAlpha: 0, x: 0, y: buttonY, scaleX: 1, scaleY: 1 });
+    gsap.set(bikeGroup, { autoAlpha: 0 });
+    gsap.set(menu, { autoAlpha: 0 });
     gsap.set(openingBikePaths, { autoAlpha: 0 });
     gsap.set(menuLines, { autoAlpha: 0, scaleX: 1 });
     gsap.set(bikePaths, { autoAlpha: 0 });
   };
 
   const closeWindow = () => {
-    if (isClosingRef.current) return;
+    if (isClosingRef.current || transition.phase !== "open") return;
 
     const windowRect = windowRectRef.current;
     const railLine = railLineRef.current;

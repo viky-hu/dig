@@ -1,4 +1,9 @@
 # DIG Agent Memory
+## Change Discipline (Hard Rule)
+- 每次只改一个模块或一个明确方面。
+- 默认只做最小改动，不重写整页、不顺手重构其它模块。
+- 如果一个请求会牵动多个页面、全局动画或转场链路，先停下来拆分，再逐步改。
+- 任何可能影响现有交互、动画、布局稳定性的改动，都要先确认边界再动手。
 
 本文件是 `dig` 仓库的项目级规则记忆文件。
 
@@ -68,6 +73,30 @@
 - 第一行字号略大，第二行略小。
 - 蓝色色块阶段保持空白，不放登录、按钮、输入框或说明文字。
 
+## Transition Best Practices
+- For homepage <-> detail shared-element transitions, use one transition state machine as the single source of truth. Do not let React mount state, CSS hover state, and GSAP timelines race each other on the same element.
+- Lock re-entry from the moment a panel is opened until the enter or close sequence fully completes. During that lock, ignore repeated open requests and ignore close-before-open-finish edge cases unless the feature is explicitly designed for interruption.
+- Always split the handoff into four phases: sample source geometry -> hide source immediately -> launch target animation -> cleanup and restore final visibility. Do not blur these phases together with ad hoc delayed callbacks.
+- Every delayed callback, `requestAnimationFrame`, timeout, or deferred GSAP hook in the transition path must carry a cancel mechanism or version check so stale callbacks cannot replay after a newer transition starts.
+- Shared elements are only allowed one visible source at a time. If the homepage center tile is hidden for handoff, its bike icon and hover residue must also be cleared synchronously.
+- Prefer `gsap.context()` plus one primary timeline per enter or exit path. If multiple tweens touch the same target, use `overwrite: "auto"` deliberately.
+- Review `from()` and `fromTo()` carefully. For late-inserted handoff tweens, default to checking whether `immediateRender: false` is needed to prevent pre-write flashes.
+- When closing, clear hover-only icon states immediately before the return animation starts. Do not let menu/bike icon morphs linger after the blue tile has already moved.
+- If ScrollTrigger or scroll pinning is disabled during a modal-style transition, record exactly which triggers were disabled and re-enable those same triggers during cleanup.
+- Default policy for this project: stabilize the current SVG/GSAP structure first. Do not introduce broad transition rewrites or full Flip migrations unless a specific module truly requires it.
+## Transition Checklist
+- Before editing a transition, confirm the request is limited to one module or one aspect and avoid opportunistic rewrites.
+- Check whether the change introduces a second visibility controller for the same object.
+- Check whether rapid open -> close -> open can produce stale callbacks.
+- Check whether hover art, bike paths, or menu lines are explicitly cleared on close.
+- Check whether the provider or controller unlocks only after the visual sequence is actually complete.
+- After each transition change, test rapid repeated clicks, immediate close after open, and reopen after full settle.
+## Failure Lessons
+- A visual `renderProgress(1)` is not enough if the homepage still has a live scroll-driven timeline behind it. The timeline progress and the ScrollTrigger scroll position must be synchronized to the same final state, or the page can snap back to a half-scrolled layout as soon as triggers wake up again.
+- Disabling ScrollTrigger during an overlay transition is only half of the job. If cleanup restores visibility first and re-enables triggers later without syncing progress, old scroll state can overwrite the manually restored final layout.
+- Shared-element stability problems often came from multiple truths existing at once: provider phase, GSAP tween state, DOM visibility, hover icon state, and scroll progress. Future fixes should first ask which one is the real source of truth and remove the others from the same moment in time.
+- Close-path bugs were easier to miss than open-path bugs because the homepage looked visually correct for a frame or two before stale state pulled it away. Future testing must include "open module -> close immediately -> confirm final homepage is still fully settled".
+- Rapid interaction failures usually were not pure performance problems. In this project they were more often ordering problems: stale callbacks, unsynchronized trigger state, or hover residue surviving longer than the blue tile itself.
 ## Change Discipline
 - 修改首页时，优先检查是否破坏以下稳定点：
   - `viewBox` 与坐标比例

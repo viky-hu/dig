@@ -13,9 +13,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh">
       <body>
-        <InsightTransitionProvider>
-          {children}
-        </InsightTransitionProvider>
+        <InsightTransitionProvider>{children}</InsightTransitionProvider>
       </body>
     </html>
   );

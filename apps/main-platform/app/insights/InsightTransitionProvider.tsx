@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import type { PanelKey, Rect } from "../home/utils";
 import { getInsightBySlug, type InsightSlug } from "./config";
@@ -34,6 +34,7 @@ type InsightTransitionContextValue = {
   registerRestoreHomeFinal: (restore: ((options?: RestoreHomeFinalOptions) => void) | null) => void;
   openFromHome: (slug: InsightSlug) => void;
   consumeOpeningHandoff: () => OpeningHandoff | null;
+  completeWindowOpen: () => void;
   prepareHomeRestore: () => void;
   finishHomeRestore: () => void;
   setHomeSettledOnce: () => void;
@@ -58,10 +59,44 @@ export function InsightTransitionProvider({ children }: { children: ReactNode })
   const hiddenElementsRef = useRef<HTMLElement[]>([]);
   const openingHandoffRef = useRef<OpeningHandoff | null>(null);
   const restoreHomeFinalRef = useRef<((options?: RestoreHomeFinalOptions) => void) | null>(null);
-  const [activeSlug, setActiveSlug] = useState<InsightSlug | null>(null);
+  const phaseRef = useRef<WindowPhase>("closed");
+  const activeSlugRef = useRef<InsightSlug | null>(null);
+  const transitionLockRef = useRef(false);
+  const transitionVersionRef = useRef(0);
+  const pendingFramesRef = useRef<number[]>([]);
+  const disabledTriggersRef = useRef<ScrollTrigger[]>([]);
+  const [activeSlug, setActiveSlugState] = useState<InsightSlug | null>(null);
   const [snapshot, setSnapshot] = useState<TransitionSnapshot | null>(null);
-  const [phase, setPhase] = useState<WindowPhase>("closed");
+  const [phase, setPhaseState] = useState<WindowPhase>("closed");
   const [isHomeSettled, setIsHomeSettled] = useState(false);
+
+  const setPhase = useCallback((nextPhase: WindowPhase) => {
+    phaseRef.current = nextPhase;
+    setPhaseState(nextPhase);
+  }, []);
+
+  const setActiveSlug = useCallback((nextSlug: InsightSlug | null) => {
+    activeSlugRef.current = nextSlug;
+    setActiveSlugState(nextSlug);
+  }, []);
+
+  const cancelPendingFrames = useCallback(() => {
+    pendingFramesRef.current.forEach((frameId) => cancelAnimationFrame(frameId));
+    pendingFramesRef.current = [];
+  }, []);
+
+  const scheduleFrame = useCallback(
+    (version: number, callback: () => void) => {
+      const frameId = requestAnimationFrame(() => {
+        pendingFramesRef.current = pendingFramesRef.current.filter((id) => id !== frameId);
+        if (transitionVersionRef.current !== version) return;
+        callback();
+      });
+
+      pendingFramesRef.current.push(frameId);
+    },
+    [],
+  );
 
   const releaseHiddenElements = useCallback(() => {
     hiddenElementsRef.current.forEach((element) => {
@@ -80,10 +115,15 @@ export function InsightTransitionProvider({ children }: { children: ReactNode })
 
   const lockHome = useCallback(() => {
     document.documentElement.classList.add("insight-window-lock");
-    ScrollTrigger.getAll().forEach((trigger) => trigger.disable(false));
+    disabledTriggersRef.current = ScrollTrigger.getAll().filter(
+      (trigger) => (trigger as ScrollTrigger & { enabled?: boolean }).enabled !== false,
+    );
+    disabledTriggersRef.current.forEach((trigger) => trigger.disable(false));
   }, []);
 
   const unlockHome = useCallback(() => {
+    disabledTriggersRef.current.forEach((trigger) => trigger.enable(false, false));
+    disabledTriggersRef.current = [];
     document.documentElement.classList.remove("insight-window-lock");
   }, []);
 
@@ -115,24 +155,30 @@ export function InsightTransitionProvider({ children }: { children: ReactNode })
 
   const openFromHome = useCallback(
     (slug: InsightSlug) => {
+      if (transitionLockRef.current || phaseRef.current !== "closed" || activeSlugRef.current) return;
+
       const insight = getInsightBySlug(slug);
       const panel = insight ? panelsRef.current.get(insight.panelKey) : undefined;
       const center = centerRef.current;
+      const panelRect = panel ? rectFromElement(panel) : undefined;
+      const centerRect = center ? rectFromElement(center) : undefined;
 
       if (!insight?.isEnabled) return;
 
+      transitionLockRef.current = true;
+      transitionVersionRef.current += 1;
+      cancelPendingFrames();
+
       const nextSnapshot: TransitionSnapshot = {
         slug,
-        panelRect: panel ? rectFromElement(panel) : undefined,
-        centerRect: center ? rectFromElement(center) : undefined,
+        panelRect,
+        centerRect,
         fromHome: Boolean(panel && center),
       };
 
       releaseHiddenElements();
       if (center) {
-        const bike = center.querySelector<SVGSVGElement>("[data-flip-id='insight-handoff-bike']");
-        const sourceTargets = bike ? [center, bike] : [center];
-
+        center.style.visibility = "hidden";
         hiddenElementsRef.current.push(center);
         openingHandoffRef.current = {
           ready: true,
@@ -145,38 +191,53 @@ export function InsightTransitionProvider({ children }: { children: ReactNode })
       setActiveSlug(slug);
       setSnapshot(nextSnapshot);
       setPhase("opening");
-      requestAnimationFrame(() => {
-        setPhase("open");
-      });
     },
-    [lockHome, releaseHiddenElements],
+    [cancelPendingFrames, lockHome, releaseHiddenElements, setActiveSlug, setPhase],
   );
 
+  const completeWindowOpen = useCallback(() => {
+    if (phaseRef.current !== "opening") return;
+
+    transitionLockRef.current = false;
+    setPhase("open");
+  }, [setPhase]);
+
   const prepareHomeRestore = useCallback(() => {
+    if (phaseRef.current !== "open") return;
+
+    transitionLockRef.current = true;
+    transitionVersionRef.current += 1;
+    cancelPendingFrames();
     setPhase("closing");
     releaseHiddenElements();
     restoreHomeFinalRef.current?.({ revealBike: false });
-  }, [releaseHiddenElements]);
+  }, [cancelPendingFrames, releaseHiddenElements, setPhase]);
 
   const finishHomeRestore = useCallback(() => {
-    unlockHome();
+    if (phaseRef.current !== "closing") return;
+
+    const version = transitionVersionRef.current;
     restoreHomeFinalRef.current?.({ revealBike: false });
 
-    requestAnimationFrame(() => {
+    scheduleFrame(version, () => {
       restoreHomeFinalRef.current?.({ revealBike: false });
       setActiveSlug(null);
       setSnapshot(null);
       setPhase("closed");
 
-      requestAnimationFrame(() => {
+      scheduleFrame(version, () => {
         restoreHomeFinalRef.current?.({ animateBike: true, revealBike: true });
+        unlockHome();
+        transitionLockRef.current = false;
       });
     });
-  }, [unlockHome]);
+  }, [scheduleFrame, setActiveSlug, setPhase, unlockHome]);
 
   const setHomeSettledOnce = useCallback(() => {
     setIsHomeSettled(true);
   }, []);
+
+  useEffect(() => cancelPendingFrames, [cancelPendingFrames]);
 
   const value = useMemo(
     () => ({
@@ -189,12 +250,14 @@ export function InsightTransitionProvider({ children }: { children: ReactNode })
       registerRestoreHomeFinal,
       openFromHome,
       consumeOpeningHandoff,
+      completeWindowOpen,
       prepareHomeRestore,
       finishHomeRestore,
       setHomeSettledOnce,
     }),
     [
       activeSlug,
+      completeWindowOpen,
       consumeOpeningHandoff,
       finishHomeRestore,
       isHomeSettled,
