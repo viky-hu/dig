@@ -406,6 +406,27 @@ export function HomeIntroPage() {
     handleOpen(slug);
   };
 
+  const renderPanelTitle = (label: PanelLabelConfig, useStackedVertical: boolean) => {
+    if (label.accent === "large") {
+      const splitIndex = Math.ceil(label.title.length / 2);
+      return [label.title.slice(0, splitIndex), label.title.slice(splitIndex)].map((line, index) => (
+        <span key={`${label.title}-line-${index}`} className="home-panel-title-line" aria-hidden="true">
+          {line}
+        </span>
+      ));
+    }
+
+    if (label.orientation !== "vertical" || !useStackedVertical) {
+      return label.title;
+    }
+
+    return Array.from(label.title).map((char, index) => (
+      <span key={`${label.title}-${index}`} className="home-panel-title-glyph" aria-hidden="true">
+        {char}
+      </span>
+    ));
+  };
+
   return (
     <main className={isDesktop ? "home-scroll-page" : "home-static-page"}>
       <div
@@ -520,8 +541,9 @@ export function HomeIntroPage() {
                       meta.label.accent === "large" ? " home-panel-title--large" : ""
                     }`}
                     style={{ color: meta.label.textColor }}
+                    aria-label={meta.label.title}
                   >
-                    {meta.label.title}
+                    {renderPanelTitle(meta.label, isDesktop)}
                   </h2>
                 </section>
               );

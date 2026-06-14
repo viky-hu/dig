@@ -118,6 +118,11 @@ body::-webkit-scrollbar {
   background-color: #1e1919 !important;
 }
 
+.home-grid-panel[data-openable="true"]:hover .home-panel-title,
+.home-grid-panel[data-openable="true"]:focus-visible .home-panel-title {
+  color: #ffffff !important;
+}
+
 .home-grid-panel[data-panel="framework"] {
   border-top-left-radius: 6px;
 }
@@ -153,16 +158,34 @@ body::-webkit-scrollbar {
 }
 
 .home-panel-title--large {
-  font-size: clamp(42px, 6vw, 108px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, 0.35vw, 8px);
+  font-size: clamp(28px, 3.2vw, 58px);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
 }
 
 .home-panel-title--vertical {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: clamp(5px, 0.65vw, 12px);
   top: clamp(18px, 1.6vw, 26px);
   left: clamp(14px, 1.2vw, 22px);
   height: calc(100% - clamp(32px, 3.2vw, 48px));
-  letter-spacing: 0.02em;
+  line-height: 0.9;
+  letter-spacing: 0;
+  white-space: nowrap;
+  text-wrap: nowrap;
+}
+
+.home-panel-title-glyph {
+  display: block;
+}
+
+.home-panel-title-line {
+  display: block;
 }
 
 @media (max-width: 1100px) {
@@ -171,12 +194,11 @@ body::-webkit-scrollbar {
   }
 
   .home-panel-title--large {
-    font-size: clamp(34px, 7vw, 74px);
+    font-size: clamp(24px, 3.6vw, 34px);
   }
 
   .home-panel-title--vertical {
-    writing-mode: horizontal-tb;
-    text-orientation: initial;
+    display: block;
     height: auto;
     left: clamp(18px, 3vw, 24px);
     top: clamp(18px, 2.8vw, 24px);
