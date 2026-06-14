@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { InsightTransitionProvider } from "./insights/InsightTransitionProvider";
 import "./globals.css";
 import "./fonts/ding-talk-jin-bu-ti/font.css";
 
@@ -11,7 +12,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh">
-      <body>{children}</body>
+      <body>
+        <InsightTransitionProvider>
+          {children}
+        </InsightTransitionProvider>
+      </body>
     </html>
   );
 }

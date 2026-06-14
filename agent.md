@@ -49,6 +49,18 @@
 - 动态背景作为独立组件维护，不把 Three.js 逻辑塞进首页组件。
 - 对“照搬型”页面，优先保留原类名、原结构、原时序，只删除业务内容，不随意重设计。
 
+## GSAP React/SVG Best Practices
+- 在 React 中优先使用 `@gsap/react` 的 `useGSAP()`，若暂未接入，则至少使用 `gsap.context()` 包裹动画创建与清理，避免组件重渲染后残留旧 tween、旧 timeline、旧事件回调。
+- 只要出现“同一个视觉对象跨组件、跨 DOM、跨容器继续运动”的需求，优先按 shared-element handoff 处理，首选 GSAP `Flip`，不要先用手工 `visibility` 切换和克隆元素硬拼时序。
+- shared-element handoff 必须先挂载目标元素，再捕获源状态并执行 `Flip.from(...)`；不要让源元素先隐藏、目标元素后出现，否则极易产生跳帧和闪烁。
+- 同一阶段只能有一个可见性真源。不要让 `autoAlpha`、`visibility`、React mount/unmount、CSS 默认态同时控制同一对象的显示状态。
+- 若同一视觉对象在交接阶段需要缩放、位移、淡出，请尽量都放进同一条 timeline 或同一个 `Flip` 过程里，避免一个对象走 SVG `attr`，另一个替身走 CSS transform。
+- 对 `from()` / `fromTo()` 保持警惕：GSAP 的 `immediateRender` 默认行为可能提前写入初始态。凡是延迟插入 timeline 的 handoff tween，都要显式判断是否需要 `immediateRender: false`。
+- 对同一目标的重叠 tween，优先统一使用单条主 timeline，或显式设置 `overwrite: "auto"`，不要依赖多个零散 `to()` 互相抢属性。
+- transform 相关状态尽量全部交给 GSAP 管理。需要重置时优先用 `clearProps`，不要混用 DOM 行内样式、CSS 初始值和手工字符串拼接的 transform。
+- SVG 的缩放中心、旋转中心统一使用 GSAP 管理的 `transformOrigin` / `svgOrigin`，避免在交接过程中手动切 origin 造成位置抖动。
+- 当前项目里，首页中心蓝块及其自行车图案与 insight 窗口左侧 45px 按钮之间的切换，一律视为 shared-element handoff；后续新增类似模块时，优先复用 `data-flip-id` 约定和 Flip 方案。
+
 ## Homepage Content Rules
 - 当前首页白色色块标题固定为两行：
   - 第一行：`上海摩拜单车`
