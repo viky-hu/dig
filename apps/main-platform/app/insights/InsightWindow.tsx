@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { BRAND_BLUE, GRID_LINE_COLOR, PHASE1_STROKE } from "../home/shared/coords";
 import { LINE_DRAW_EASE, LOGO_DRAW_EASE } from "../home/shared/animation";
 import { bikePathData } from "../home/utils";
+import { InsightArticleContent } from "./InsightArticleContent";
 import { getInsightBySlug, type InsightSlug } from "./config";
 import { useInsightTransition } from "./InsightTransitionProvider";
 
@@ -27,10 +28,12 @@ function useViewportSize() {
 export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overlay" | "standalone" }) {
   const transition = useInsightTransition();
   const viewport = useViewportSize();
+  const [isArticleActivated, setIsArticleActivated] = useState(mode === "standalone");
   const svgRef = useRef<SVGSVGElement>(null);
   const windowRectRef = useRef<SVGRectElement>(null);
   const railLineRef = useRef<SVGLineElement>(null);
   const blueRectRef = useRef<SVGRectElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const openingBikeRef = useRef<SVGGElement>(null);
   const menuRef = useRef<SVGGElement>(null);
   const bikeRef = useRef<SVGGElement>(null);
@@ -48,11 +51,12 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
     const windowRect = windowRectRef.current;
     const railLine = railLineRef.current;
     const blueRect = blueRectRef.current;
+    const content = contentRef.current;
     const openingBikeGroup = openingBikeRef.current;
     const menu = menuRef.current;
     const bikeGroup = bikeRef.current;
 
-    if (!svg || !windowRect || !railLine || !blueRect || !openingBikeGroup || !menu || !bikeGroup) return;
+    if (!svg || !windowRect || !railLine || !blueRect || !content || !openingBikeGroup || !menu || !bikeGroup) return;
 
     const openingBikePaths = openingBikeGroup.querySelectorAll<SVGPathElement>(".insight-handoff-bike-path");
     const bikePaths = bikeGroup.querySelectorAll<SVGPathElement>(".insight-bike-path");
@@ -60,9 +64,10 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
     const panelRect = snapshot?.panelRect;
     const centerRect = snapshot?.centerRect;
     const ctx = gsap.context(() => {
-      gsap.killTweensOf([windowRect, railLine, blueRect, openingBikeGroup, openingBikePaths, menuLines, bikePaths]);
+      gsap.killTweensOf([windowRect, railLine, blueRect, content, openingBikeGroup, openingBikePaths, menuLines, bikePaths]);
       closeTlRef.current?.kill();
       isIconReadyRef.current = false;
+      setIsArticleActivated(!fromHome);
 
       const startPanel = fromHome && panelRect ? panelRect : { x: 0, y: 0, width: viewport.width, height: viewport.height };
       const startCenter = fromHome && centerRect ? centerRect : { x: 0, y: buttonY, width: RAIL_SIZE, height: RAIL_SIZE };
@@ -92,6 +97,10 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
         stroke: GRID_LINE_COLOR,
         strokeWidth: PHASE1_STROKE,
         vectorEffect: "non-scaling-stroke",
+      });
+      gsap.set(content, {
+        autoAlpha: fromHome ? 0 : 1,
+        y: fromHome ? 20 : 0,
       });
       gsap.set(menuLines, { autoAlpha: 0, scaleX: 1, transformOrigin: "50% 50%" });
       gsap.set(openingBikeGroup, {
@@ -169,6 +178,16 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
         fromHome ? 0.5 : 0.12,
       );
       tl.to(
+        content,
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.42,
+          ease: "power2.out",
+        },
+        fromHome ? 0.56 : 0.16,
+      );
+      tl.to(
         menuLines,
         {
           autoAlpha: 1,
@@ -177,6 +196,7 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
           stagger: 0.025,
           onComplete: () => {
             isIconReadyRef.current = true;
+            setIsArticleActivated(true);
             transition.completeWindowOpen();
           },
         },
@@ -271,13 +291,15 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
     const windowRect = windowRectRef.current;
     const railLine = railLineRef.current;
     const blueRect = blueRectRef.current;
+    const content = contentRef.current;
     const panelRect = snapshot?.panelRect;
     const centerRect = snapshot?.centerRect;
 
-    if (!windowRect || !railLine || !blueRect) return;
+    if (!windowRect || !railLine || !blueRect || !content) return;
 
     isClosingRef.current = true;
     isIconReadyRef.current = false;
+    setIsArticleActivated(false);
     closeTlRef.current?.kill();
     hideButtonIcon();
     transition.prepareHomeRestore();
@@ -291,6 +313,7 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
     });
 
     closeTlRef.current = tl;
+    tl.to(content, { autoAlpha: 0, y: 16, duration: 0.18, ease: "power2.in", overwrite: "auto" }, 0);
     tl.to(railLine, { attr: { y2: 0 }, duration: 0.38, ease: LINE_DRAW_EASE }, 0.12);
     tl.to(
       blueRect,
@@ -337,7 +360,11 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
         aria-hidden="true"
       >
         <rect ref={windowRectRef} className="insight-window-bg" />
-        <foreignObject x={RAIL_SIZE} y={0} width={Math.max(0, viewport.width - RAIL_SIZE)} height={viewport.height} />
+        <foreignObject x={RAIL_SIZE} y={0} width={Math.max(0, viewport.width - RAIL_SIZE)} height={viewport.height}>
+          <div ref={contentRef} className="insight-window-content">
+            <InsightArticleContent slug={slug} isActivated={isArticleActivated} />
+          </div>
+        </foreignObject>
         <line ref={railLineRef} className="insight-window-rail-line" />
         <g
           className="insight-window-close"
