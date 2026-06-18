@@ -37,10 +37,12 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
   const openingBikeRef = useRef<SVGGElement>(null);
   const menuRef = useRef<SVGGElement>(null);
   const bikeRef = useRef<SVGGElement>(null);
+  const openTlRef = useRef<gsap.core.Timeline | null>(null);
   const closeTlRef = useRef<gsap.core.Timeline | null>(null);
   const insight = getInsightBySlug(slug);
   const snapshot = transition.snapshot?.slug === slug ? transition.snapshot : null;
   const fromHome = Boolean(mode === "overlay" && snapshot?.fromHome && snapshot.panelRect && snapshot.centerRect);
+  const isFlowWindow = slug === "insight-06";
   const buttonY = (viewport.height - RAIL_SIZE) / 2;
   const bike = useMemo(() => bikePathData(RAIL_SIZE, RAIL_SIZE), []);
   const isClosingRef = useRef(false);
@@ -65,6 +67,8 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
     const centerRect = snapshot?.centerRect;
     const ctx = gsap.context(() => {
       gsap.killTweensOf([windowRect, railLine, blueRect, content, openingBikeGroup, openingBikePaths, menuLines, bikePaths]);
+      openTlRef.current?.kill();
+      openTlRef.current = null;
       closeTlRef.current?.kill();
       isIconReadyRef.current = false;
       setIsArticleActivated(!fromHome);
@@ -100,7 +104,8 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
       });
       gsap.set(content, {
         autoAlpha: fromHome ? 0 : 1,
-        y: fromHome ? 20 : 0,
+        y: fromHome ? (isFlowWindow ? 8 : 20) : 0,
+        force3D: true,
       });
       gsap.set(menuLines, { autoAlpha: 0, scaleX: 1, transformOrigin: "50% 50%" });
       gsap.set(openingBikeGroup, {
@@ -117,10 +122,26 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
       });
       gsap.set(openingBikePaths, { autoAlpha: fromHome && openingHandoff ? 1 : 0, strokeDasharray: "none", strokeDashoffset: 0 });
 
-      const tl = gsap.timeline({ defaults: { ease: "expo.inOut", overwrite: "auto" } });
+      const windowDuration = fromHome ? (isFlowWindow ? 0.56 : 0.72) : 0;
+      const handoffDuration = isFlowWindow ? 0.48 : 0.64;
+      const handoffStart = isFlowWindow ? 0.14 : 0.18;
+      const railStart = fromHome ? (isFlowWindow ? 0.36 : 0.5) : 0.12;
+      const railDuration = isFlowWindow ? 0.42 : 0.62;
+      const contentStart = fromHome ? (isFlowWindow ? 0.4 : 0.56) : isFlowWindow ? 0.08 : 0.16;
+      const contentDuration = isFlowWindow ? 0.22 : 0.42;
+      const menuStart = fromHome ? (isFlowWindow ? 0.52 : 0.68) : isFlowWindow ? 0.2 : 0.3;
+      const flowReadyAt = fromHome ? 0.58 : 0.24;
+
+      const tl = gsap.timeline({
+        defaults: { ease: "expo.inOut", overwrite: "auto" },
+        onComplete: () => {
+          openTlRef.current = null;
+        },
+      });
+      openTlRef.current = tl;
       tl.to(windowRect, {
         attr: { x: 0, y: 0, width: viewport.width, height: viewport.height },
-        duration: fromHome ? 0.72 : 0,
+        duration: windowDuration,
       });
 
       if (fromHome && openingHandoff) {
@@ -128,9 +149,9 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
           blueRect,
           {
             attr: { x: 0, y: buttonY, width: RAIL_SIZE, height: RAIL_SIZE },
-            duration: 0.64,
+            duration: handoffDuration,
           },
-          0.18,
+          handoffStart,
         );
         tl.to(
           openingBikeGroup,
@@ -139,12 +160,12 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
             y: buttonY,
             scaleX: 1,
             scaleY: 1,
-            duration: 0.64,
+            duration: handoffDuration,
           },
-          0.18,
+          handoffStart,
         );
-        tl.to(openingBikePaths, { autoAlpha: 0, duration: 0.14, ease: "power2.out", stagger: 0.01 }, 0.5);
-        tl.set(openingBikeGroup, { autoAlpha: 0 }, 0.7);
+        tl.to(openingBikePaths, { autoAlpha: 0, duration: 0.12, ease: "power2.out", stagger: 0.008 }, isFlowWindow ? 0.4 : 0.5);
+        tl.set(openingBikeGroup, { autoAlpha: 0 }, isFlowWindow ? 0.54 : 0.7);
       } else {
         tl.set(openingBikeGroup, { autoAlpha: 0 }, 0);
         tl.fromTo(
@@ -172,35 +193,50 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
         railLine,
         {
           attr: { y2: viewport.height },
-          duration: 0.62,
+          duration: railDuration,
           ease: LINE_DRAW_EASE,
         },
-        fromHome ? 0.5 : 0.12,
+        railStart,
       );
       tl.to(
         content,
         {
           autoAlpha: 1,
           y: 0,
-          duration: 0.42,
+          duration: contentDuration,
           ease: "power2.out",
         },
-        fromHome ? 0.56 : 0.16,
+        contentStart,
       );
-      tl.to(
-        menuLines,
-        {
-          autoAlpha: 1,
-          duration: 0.16,
-          ease: "power2.out",
-          stagger: 0.025,
-          onComplete: () => {
+
+      if (isFlowWindow) {
+        tl.call(
+          () => {
             isIconReadyRef.current = true;
             setIsArticleActivated(true);
             transition.completeWindowOpen();
           },
+          [],
+          flowReadyAt,
+        );
+      }
+
+      tl.to(
+        menuLines,
+        {
+          autoAlpha: 1,
+          duration: isFlowWindow ? 0.12 : 0.16,
+          ease: "power2.out",
+          stagger: 0.025,
+          onComplete: () => {
+            if (!isFlowWindow) {
+              isIconReadyRef.current = true;
+              setIsArticleActivated(true);
+              transition.completeWindowOpen();
+            }
+          },
         },
-        fromHome ? 0.68 : 0.3,
+        menuStart,
       );
 
       return () => {
@@ -209,7 +245,7 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
     }, svg);
 
     return () => ctx.revert();
-  }, [buttonY, fromHome, snapshot, viewport.height, viewport.width]);
+  }, [buttonY, fromHome, isFlowWindow, snapshot, viewport.height, viewport.width]);
 
   const morphToBike = () => {
     if (isClosingRef.current || !isIconReadyRef.current) return;
@@ -299,6 +335,8 @@ export function InsightWindow({ slug, mode }: { slug: InsightSlug; mode: "overla
 
     isClosingRef.current = true;
     isIconReadyRef.current = false;
+    openTlRef.current?.kill();
+    openTlRef.current = null;
     setIsArticleActivated(false);
     closeTlRef.current?.kill();
     hideButtonIcon();

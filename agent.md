@@ -72,6 +72,12 @@
 - SVG 的缩放中心、旋转中心统一使用 GSAP 管理的 `transformOrigin` / `svgOrigin`，避免在交接过程中手动切 origin 造成位置抖动。
 - 当前项目里，首页中心蓝块及其自行车图案与 insight 窗口左侧 45px 按钮之间的切换，一律视为 shared-element handoff；后续新增类似模块时，优先复用 `data-flip-id` 约定和 Flip 方案。
 
+## Insight Data-Viz Stability
+- 地图、流线、节点等复杂 SVG 可视化进入页面后，优先保持 DOM 稳定挂载；筛选、Top N、模式切换尽量用 class/opacity 控制，不要频繁 mount/unmount 路径。
+- 整页级 `opacity` / ready 遮罩只用于真正的入场阶段。页面已可见后，不要再切整页透明，否则容易露出底层首页或其它窗口残影。
+- 入场动画可以交给 GSAP；点击、筛选、选中态等高频交互优先交给 React 状态 + CSS transition，除非确实需要统一 timeline。
+- SVG 的 `defs`、gradient、mask、marker id 要稳定；可见路径依赖这些定义时，先保证定义已挂载，再切换路径显示状态。
+
 ## Homepage Content Rules
 - 当前首页白色色块标题固定为两行：
   - 第一行：`上海摩拜单车`

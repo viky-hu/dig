@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, RotateCcw } from "lucide-react";
 import { LOGO_DRAW_EASE } from "../home/shared/animation";
 import { bikePathData } from "../home/utils";
 import type { InsightSlug } from "./config";
+import { SHANGHAI_GEO_BOUNDS, SHANGHAI_MAP_VIEWBOX, shanghaiMapRegions } from "./shanghaiMapData";
 
 const INSIGHT_TITLES: Record<InsightSlug, string> = {
   "insight-01": "项目总览",
@@ -264,6 +265,589 @@ const DURATION_CHART = {
 
 const durationYAxisTicks = [0, 2000, 4000, 6000] as const;
 const durationXAxisTicks = [1, 5, 10, 15, 20, 25, 30] as const;
+
+type SpatialHotspotId =
+  | "pudong-core"
+  | "people-square"
+  | "expo-sanlin"
+  | "hongkou-yangpu"
+  | "minhang-xuhui"
+  | "changning-putuo";
+
+type SpatialHotspot = {
+  id: SpatialHotspotId;
+  rank: number;
+  name: string;
+  area: string;
+  lng: number;
+  lat: number;
+  orders: number;
+  percent: number;
+  radiusKm: number;
+  summary: string;
+};
+
+type SpatialHotspotDot = {
+  id: string;
+  hotspotId: SpatialHotspotId;
+  x: number;
+  y: number;
+  radius: number;
+  opacity: number;
+};
+
+const spatialHotspots = [
+  {
+    id: "pudong-core",
+    rank: 1,
+    name: "浦东核心 / 陆家嘴",
+    area: "陆家嘴",
+    lng: 121.5248,
+    lat: 31.2871,
+    orders: 24187,
+    percent: 23.7,
+    radiusKm: 3.1,
+    summary: "金融办公与换乘核心。",
+  },
+  {
+    id: "people-square",
+    rank: 2,
+    name: "人民广场 / 南京路",
+    area: "人民广场",
+    lng: 121.4351,
+    lat: 31.2563,
+    orders: 19913,
+    percent: 19.5,
+    radiusKm: 3,
+    summary: "商业办公高度叠加。",
+  },
+  {
+    id: "expo-sanlin",
+    rank: 3,
+    name: "浦东世博 / 三林",
+    area: "世博三林",
+    lng: 121.4798,
+    lat: 31.2034,
+    orders: 16758,
+    percent: 16.4,
+    radiusKm: 3.4,
+    summary: "南向通勤扩散明显。",
+  },
+  {
+    id: "hongkou-yangpu",
+    rank: 4,
+    name: "虹口 / 杨浦",
+    area: "虹口杨浦",
+    lng: 121.4643,
+    lat: 31.3204,
+    orders: 15340,
+    percent: 15,
+    radiusKm: 3.1,
+    summary: "北部骑行密度带。",
+  },
+  {
+    id: "minhang-xuhui",
+    rank: 5,
+    name: "闵行 / 徐汇南部",
+    area: "闵行徐汇",
+    lng: 121.4031,
+    lat: 31.1593,
+    orders: 13743,
+    percent: 13.4,
+    radiusKm: 4,
+    summary: "南部居住接驳更散。",
+  },
+  {
+    id: "changning-putuo",
+    rank: 6,
+    name: "长宁 / 普陀",
+    area: "长宁普陀",
+    lng: 121.3548,
+    lat: 31.2582,
+    orders: 12269,
+    percent: 12,
+    radiusKm: 4.2,
+    summary: "西部短途接驳稳定。",
+  },
+] as const satisfies readonly SpatialHotspot[];
+
+const spatialHotspotTotal = 102210;
+const spatialTopThreeShare = 59.6;
+const spatialFocusBounds = {
+  minLng: 121.235,
+  maxLng: 121.63,
+  minLat: 31.08,
+  maxLat: 31.39,
+} as const;
+
+const spatialFocusScale = (() => {
+  const cityWidth = SHANGHAI_GEO_BOUNDS.maxLng - SHANGHAI_GEO_BOUNDS.minLng;
+  const cityHeight = SHANGHAI_GEO_BOUNDS.maxLat - SHANGHAI_GEO_BOUNDS.minLat;
+  const focusWidth = spatialFocusBounds.maxLng - spatialFocusBounds.minLng;
+  const focusHeight = spatialFocusBounds.maxLat - spatialFocusBounds.minLat;
+  return Math.min(cityWidth / focusWidth, cityHeight / focusHeight);
+})();
+
+const spatialFocusCenter = projectShanghaiPoint(
+  (spatialFocusBounds.minLng + spatialFocusBounds.maxLng) / 2,
+  (spatialFocusBounds.minLat + spatialFocusBounds.maxLat) / 2,
+);
+
+const spatialMapTransform = {
+  scale: spatialFocusScale,
+  translateX: SHANGHAI_MAP_VIEWBOX.width / 2 - spatialFocusCenter.x * spatialFocusScale,
+  translateY: SHANGHAI_MAP_VIEWBOX.height / 2 - spatialFocusCenter.y * spatialFocusScale,
+} as const;
+const spatialMapTransformValue = `translate(${spatialMapTransform.translateX.toFixed(2)} ${spatialMapTransform.translateY.toFixed(2)}) scale(${spatialMapTransform.scale.toFixed(4)})`;
+const spatialGlobalMapTransformValue = "translate(0 0) scale(1)";
+const spatialSymbolScale = 1 / spatialMapTransform.scale;
+const spatialCrosshairSize = 12 * spatialSymbolScale;
+
+const flowFocusBounds = {
+  minLng: 121.32,
+  maxLng: 121.555,
+  minLat: 31.125,
+  maxLat: 31.34,
+} as const;
+
+const flowFocusScale = (() => {
+  const cityWidth = SHANGHAI_GEO_BOUNDS.maxLng - SHANGHAI_GEO_BOUNDS.minLng;
+  const cityHeight = SHANGHAI_GEO_BOUNDS.maxLat - SHANGHAI_GEO_BOUNDS.minLat;
+  const focusWidth = flowFocusBounds.maxLng - flowFocusBounds.minLng;
+  const focusHeight = flowFocusBounds.maxLat - flowFocusBounds.minLat;
+  return Math.min(cityWidth / focusWidth, cityHeight / focusHeight);
+})();
+
+const flowFocusCenter = projectShanghaiPoint(
+  (flowFocusBounds.minLng + flowFocusBounds.maxLng) / 2,
+  (flowFocusBounds.minLat + flowFocusBounds.maxLat) / 2,
+);
+
+const flowMapTransform = {
+  scale: flowFocusScale,
+  translateX: SHANGHAI_MAP_VIEWBOX.width / 2 - flowFocusCenter.x * flowFocusScale,
+  translateY: SHANGHAI_MAP_VIEWBOX.height / 2 - flowFocusCenter.y * flowFocusScale,
+} as const;
+const flowMapTransformValue = `translate(${flowMapTransform.translateX.toFixed(2)} ${flowMapTransform.translateY.toFixed(2)}) scale(${flowMapTransform.scale.toFixed(4)})`;
+const flowGlobalMapTransformValue = spatialGlobalMapTransformValue;
+const flowSymbolScale = 1 / flowMapTransform.scale;
+
+function projectShanghaiPoint(lng: number, lat: number) {
+  const innerWidth = SHANGHAI_MAP_VIEWBOX.width - SHANGHAI_MAP_VIEWBOX.padding * 2;
+  const innerHeight = SHANGHAI_MAP_VIEWBOX.height - SHANGHAI_MAP_VIEWBOX.padding * 2;
+  const x = SHANGHAI_MAP_VIEWBOX.padding + ((lng - SHANGHAI_GEO_BOUNDS.minLng) / (SHANGHAI_GEO_BOUNDS.maxLng - SHANGHAI_GEO_BOUNDS.minLng)) * innerWidth;
+  const y = SHANGHAI_MAP_VIEWBOX.padding + ((SHANGHAI_GEO_BOUNDS.maxLat - lat) / (SHANGHAI_GEO_BOUNDS.maxLat - SHANGHAI_GEO_BOUNDS.minLat)) * innerHeight;
+
+  return { x, y };
+}
+
+function createSpatialHotspotDots(): SpatialHotspotDot[] {
+  return spatialHotspots.flatMap((hotspot, hotspotIndex) => {
+    const center = projectShanghaiPoint(hotspot.lng, hotspot.lat);
+    const dotCount = hotspot.rank <= 3 ? 34 : 25;
+    const spreadX = (18 + hotspot.radiusKm * 10 + (hotspot.rank <= 3 ? 8 : 0)) * spatialSymbolScale;
+    const spreadY = (14 + hotspot.radiusKm * 8 + (hotspot.rank <= 3 ? 5 : 0)) * spatialSymbolScale;
+
+    return Array.from({ length: dotCount }, (_, dotIndex) => {
+      const turn = dotIndex * 2.399963 + hotspotIndex * 0.61;
+      const ring = Math.sqrt((dotIndex + 1) / dotCount);
+      const wobble = 0.82 + ((dotIndex * 37 + hotspotIndex * 11) % 17) / 48;
+      const x = center.x + Math.cos(turn) * spreadX * ring * wobble;
+      const y = center.y + Math.sin(turn) * spreadY * ring * (1.1 - wobble * 0.18);
+      const radius = (1.8 + ((dotIndex + hotspotIndex) % 4) * 0.36) * spatialSymbolScale;
+      const opacity = 0.42 + ((dotIndex * 13 + hotspotIndex) % 9) * 0.045;
+
+      return {
+        id: `${hotspot.id}-${dotIndex}`,
+        hotspotId: hotspot.id,
+        x,
+        y,
+        radius,
+        opacity,
+      };
+    });
+  });
+}
+
+const spatialHotspotDots = createSpatialHotspotDots();
+
+type FlowRegionId = "r1" | "r2" | "r3" | "r4" | "r5" | "r6";
+type FlowMode = "all" | "cross" | "internal" | "net";
+type FlowTopLimit = 5 | 10 | 15;
+type FlowStatus = "in" | "out" | "balanced";
+type FlowMatrixRow = readonly [number, number, number, number, number, number];
+
+type FlowRegionSeed = {
+  id: FlowRegionId;
+  regionNo: number;
+  name: string;
+  area: string;
+  lng: number;
+  lat: number;
+  orders: number;
+  summary: string;
+};
+
+type FlowRegion = FlowRegionSeed & {
+  incoming: number;
+  outgoing: number;
+  internal: number;
+  netFlow: number;
+  internalShare: number;
+  point: ReturnType<typeof projectShanghaiPoint>;
+  status: FlowStatus;
+  nodeRadius: number;
+};
+
+type FlowPoint = {
+  x: number;
+  y: number;
+};
+
+type FlowCurve = {
+  start: FlowPoint;
+  control: FlowPoint;
+  end: FlowPoint;
+};
+
+type FlowEdge = {
+  id: string;
+  from: FlowRegionId;
+  to: FlowRegionId;
+  fromRegion: FlowRegion;
+  toRegion: FlowRegion;
+  count: number;
+  percent: number;
+  rank: number;
+  path: string;
+  taperedArrowPath: string;
+  gradientStart: FlowPoint;
+  gradientEnd: FlowPoint;
+  strength: number;
+};
+
+type FlowSelection =
+  | { kind: "region"; regionId: FlowRegionId }
+  | { kind: "edge"; edgeId: string };
+
+const flowRegionIds = ["r1", "r2", "r3", "r4", "r5", "r6"] as const satisfies readonly FlowRegionId[];
+const flowTopLimits = [5, 10, 15] as const satisfies readonly FlowTopLimit[];
+const flowModeOrder = ["all", "cross", "internal", "net"] as const satisfies readonly FlowMode[];
+const flowEmptyMatrixRow = [0, 0, 0, 0, 0, 0] as const satisfies FlowMatrixRow;
+
+const flowRegionSeeds = [
+  {
+    id: "r1",
+    regionNo: 1,
+    name: "人民广场 / 南京路",
+    area: "人民广场",
+    lng: 121.4351,
+    lat: 31.2563,
+    orders: 19913,
+    summary: "中心商业与办公混合区，双向换乘和短途接驳都很密集。",
+  },
+  {
+    id: "r2",
+    regionNo: 2,
+    name: "浦东世博 / 三林",
+    area: "世博三林",
+    lng: 121.4798,
+    lat: 31.2034,
+    orders: 16758,
+    summary: "南向居住与通勤接驳明显，向人民广场和徐汇南部输出较多。",
+  },
+  {
+    id: "r3",
+    regionNo: 3,
+    name: "浦东核心 / 陆家嘴",
+    area: "陆家嘴",
+    lng: 121.5248,
+    lat: 31.2871,
+    orders: 24187,
+    summary: "订单量最高的核心区，与虹口杨浦之间形成最强跨区束线。",
+  },
+  {
+    id: "r4",
+    regionNo: 4,
+    name: "长宁 / 普陀",
+    area: "长宁普陀",
+    lng: 121.3548,
+    lat: 31.2582,
+    orders: 12269,
+    summary: "西侧短途循环稳定，与人民广场之间存在清晰的东西向互流。",
+  },
+  {
+    id: "r5",
+    regionNo: 5,
+    name: "闵行 / 徐汇南部",
+    area: "闵行徐汇",
+    lng: 121.4031,
+    lat: 31.1593,
+    orders: 13743,
+    summary: "南部居住接驳更分散，与浦东世博三林之间互流突出。",
+  },
+  {
+    id: "r6",
+    regionNo: 6,
+    name: "虹口 / 杨浦",
+    area: "虹口杨浦",
+    lng: 121.4643,
+    lat: 31.3204,
+    orders: 15340,
+    summary: "北部骑行密度带，整体呈净流入，并与陆家嘴形成最高强度通道。",
+  },
+] as const satisfies readonly FlowRegionSeed[];
+
+const flowMatrix = [
+  [15800, 1100, 557, 1062, 413, 981],
+  [1385, 13644, 554, 40, 1064, 71],
+  [587, 471, 21719, 2, 3, 1405],
+  [950, 21, 3, 10801, 283, 211],
+  [399, 963, 5, 353, 12018, 5],
+  [833, 29, 1288, 177, 0, 13013],
+] as const satisfies readonly FlowMatrixRow[];
+
+const flowTotalTrips = flowMatrix.reduce(
+  (total: number, row) => total + row.reduce((rowTotal: number, count) => rowTotal + count, 0),
+  0,
+);
+const flowInternalTrips = flowMatrix.reduce((total, row, index) => total + (row[index] ?? 0), 0);
+const flowCrossTrips = flowTotalTrips - flowInternalTrips;
+const flowInternalShare = (flowInternalTrips / flowTotalTrips) * 100;
+const flowCrossShare = (flowCrossTrips / flowTotalTrips) * 100;
+const flowMaxOrders = Math.max(...flowRegionSeeds.map((region) => region.orders));
+
+function getFlowStatus(netFlow: number): FlowStatus {
+  if (netFlow >= 150) return "in";
+  if (netFlow <= -150) return "out";
+  return "balanced";
+}
+
+const flowRegions = flowRegionSeeds.map((seed, index) => {
+  const row = flowMatrix[index] ?? flowEmptyMatrixRow;
+  const outgoing = row.reduce((total: number, count) => total + count, 0);
+  const incoming = flowMatrix.reduce((total, matrixRow) => total + (matrixRow[index] ?? 0), 0);
+  const internal = row[index] ?? 0;
+  const netFlow = incoming - outgoing;
+  const point = projectShanghaiPoint(seed.lng, seed.lat);
+
+  return {
+    ...seed,
+    incoming,
+    outgoing,
+    internal,
+    netFlow,
+    internalShare: (internal / outgoing) * 100,
+    point,
+    status: getFlowStatus(netFlow),
+    nodeRadius: (6.8 + Math.sqrt(seed.orders / flowMaxOrders) * 8.8) * flowSymbolScale,
+  };
+}) satisfies FlowRegion[];
+
+const flowRegionById = new Map<FlowRegionId, FlowRegion>(flowRegions.map((region) => [region.id, region]));
+const flowMaxInternalTrips = Math.max(...flowRegions.map((region) => region.internal));
+const flowMaxCrossCount = Math.max(
+  ...flowMatrix.flatMap((row, rowIndex) =>
+    row.flatMap((count, colIndex) => (rowIndex === colIndex || count <= 0 ? [] : [count])),
+  ),
+);
+
+function getFlowRegion(regionId: FlowRegionId) {
+  return flowRegionById.get(regionId) ?? flowRegions[0];
+}
+
+function flowEdgeId(from: FlowRegionId, to: FlowRegionId) {
+  return `${from}-${to}`;
+}
+
+function createFlowCurve(fromRegion: FlowRegion, toRegion: FlowRegion): FlowCurve {
+  const dx = toRegion.point.x - fromRegion.point.x;
+  const dy = toRegion.point.y - fromRegion.point.y;
+  const distance = Math.hypot(dx, dy) || 1;
+  const unitX = dx / distance;
+  const unitY = dy / distance;
+  const normalX = -unitY;
+  const normalY = unitX;
+  const pairSign = fromRegion.regionNo < toRegion.regionNo ? 1 : -1;
+  const bend = (28 + ((fromRegion.regionNo + toRegion.regionNo) % 4) * 7 + Math.min(distance * 0.04, 24)) * flowSymbolScale * pairSign;
+  const startX = fromRegion.point.x + unitX * (fromRegion.nodeRadius + 5 * flowSymbolScale);
+  const startY = fromRegion.point.y + unitY * (fromRegion.nodeRadius + 5 * flowSymbolScale);
+  const endX = toRegion.point.x - unitX * (toRegion.nodeRadius + 10 * flowSymbolScale);
+  const endY = toRegion.point.y - unitY * (toRegion.nodeRadius + 10 * flowSymbolScale);
+  const controlX = (startX + endX) / 2 + normalX * bend;
+  const controlY = (startY + endY) / 2 + normalY * bend;
+
+  return {
+    start: { x: startX, y: startY },
+    control: { x: controlX, y: controlY },
+    end: { x: endX, y: endY },
+  };
+}
+
+function flowCurveToPath(curve: FlowCurve) {
+  return `M ${curve.start.x.toFixed(2)} ${curve.start.y.toFixed(2)} Q ${curve.control.x.toFixed(2)} ${curve.control.y.toFixed(2)} ${curve.end.x.toFixed(2)} ${curve.end.y.toFixed(2)}`;
+}
+
+function flowCurvePoint(curve: FlowCurve, t: number): FlowPoint {
+  const inv = 1 - t;
+  return {
+    x: inv * inv * curve.start.x + 2 * inv * t * curve.control.x + t * t * curve.end.x,
+    y: inv * inv * curve.start.y + 2 * inv * t * curve.control.y + t * t * curve.end.y,
+  };
+}
+
+function flowCurveNormal(curve: FlowCurve, t: number): FlowPoint {
+  const dx = 2 * (1 - t) * (curve.control.x - curve.start.x) + 2 * t * (curve.end.x - curve.control.x);
+  const dy = 2 * (1 - t) * (curve.control.y - curve.start.y) + 2 * t * (curve.end.y - curve.control.y);
+  const length = Math.hypot(dx, dy) || 1;
+
+  return { x: -dy / length, y: dx / length };
+}
+
+function flowCurveTangent(curve: FlowCurve, t: number): FlowPoint {
+  const dx = 2 * (1 - t) * (curve.control.x - curve.start.x) + 2 * t * (curve.end.x - curve.control.x);
+  const dy = 2 * (1 - t) * (curve.control.y - curve.start.y) + 2 * t * (curve.end.y - curve.control.y);
+  const length = Math.hypot(dx, dy) || 1;
+
+  return { x: dx / length, y: dy / length };
+}
+
+function createFlowTaperedArrowPath(curve: FlowCurve, strength: number) {
+  const samples = [0.018, 0.055, 0.11, 0.19, 0.3, 0.43, 0.58, 0.72, 0.84, 0.925, 0.972];
+  const tailWidth = (38 + strength * 30) * flowSymbolScale;
+  const tipWidth = (2.8 + strength * 2.8) * flowSymbolScale;
+  const left: FlowPoint[] = [];
+  const right: FlowPoint[] = [];
+
+  samples.forEach((t, index) => {
+    const progress = index / (samples.length - 1);
+    const point = flowCurvePoint(curve, t);
+    const normal = flowCurveNormal(curve, t);
+    const eased = 1 - Math.pow(1 - progress, 1.55);
+    const tailBloom = Math.max(0, 1 - progress / 0.22) * (6 + strength * 9) * flowSymbolScale;
+    const width = tailWidth + (tipWidth - tailWidth) * eased + tailBloom;
+
+    left.push({ x: point.x + normal.x * width * 0.5, y: point.y + normal.y * width * 0.5 });
+    right.push({ x: point.x - normal.x * width * 0.5, y: point.y - normal.y * width * 0.5 });
+  });
+
+  const tip = curve.end;
+  const tailCenter = flowCurvePoint(curve, samples[0]);
+  const tailTangent = flowCurveTangent(curve, samples[0]);
+  const capControl = {
+    x: tailCenter.x - tailTangent.x * tailWidth * 0.28,
+    y: tailCenter.y - tailTangent.y * tailWidth * 0.28,
+  };
+  const path = [`M ${left[0].x.toFixed(2)} ${left[0].y.toFixed(2)}`];
+
+  left.slice(1).forEach((point) => {
+    path.push(`L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`);
+  });
+  path.push(`L ${tip.x.toFixed(2)} ${tip.y.toFixed(2)}`);
+  right
+    .slice()
+    .reverse()
+    .forEach((point) => {
+      path.push(`L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`);
+    });
+  path.push(`Q ${capControl.x.toFixed(2)} ${capControl.y.toFixed(2)} ${left[0].x.toFixed(2)} ${left[0].y.toFixed(2)}`);
+  path.push("Z");
+
+  return path.join(" ");
+}
+
+function createFlowLoopPath(region: FlowRegion) {
+  const strength = Math.sqrt(region.internal / flowMaxInternalTrips);
+  const radiusX = (22 + strength * 20) * flowSymbolScale;
+  const radiusY = radiusX * 0.58;
+  const tilt = region.regionNo % 2 === 0 ? 1 : -1;
+  const x = region.point.x;
+  const y = region.point.y;
+  const leftX = x - radiusX;
+  const rightX = x + radiusX;
+  const startY = y - tilt * radiusY * 0.12;
+
+  return [
+    `M ${leftX.toFixed(2)} ${startY.toFixed(2)}`,
+    `C ${leftX.toFixed(2)} ${(y - tilt * radiusY).toFixed(2)} ${rightX.toFixed(2)} ${(y - tilt * radiusY).toFixed(2)} ${rightX.toFixed(2)} ${startY.toFixed(2)}`,
+    `C ${rightX.toFixed(2)} ${(y + tilt * radiusY).toFixed(2)} ${leftX.toFixed(2)} ${(y + tilt * radiusY).toFixed(2)} ${leftX.toFixed(2)} ${startY.toFixed(2)}`,
+  ].join(" ");
+}
+
+function flowLoopStrokeWidth(region: FlowRegion) {
+  return 2.4 + Math.sqrt(region.internal / flowMaxInternalTrips) * 4.2;
+}
+
+const flowAllEdges = flowMatrix.flatMap((row, fromIndex) => {
+  const from = flowRegionIds[fromIndex];
+  const fromRegion = flowRegions[fromIndex];
+  if (!from || !fromRegion) return [];
+
+  return row.flatMap((count, toIndex) => {
+    const to = flowRegionIds[toIndex];
+    const toRegion = flowRegions[toIndex];
+    if (!to || !toRegion || count <= 0) return [];
+
+    const isInternal = from === to;
+    const strength = Math.sqrt(count / (isInternal ? flowMaxInternalTrips : flowMaxCrossCount));
+    const curve = isInternal ? null : createFlowCurve(fromRegion, toRegion);
+
+    return [
+      {
+        id: flowEdgeId(from, to),
+        from,
+        to,
+        fromRegion,
+        toRegion,
+        count,
+        percent: (count / flowTotalTrips) * 100,
+        rank: 0,
+        path: curve ? flowCurveToPath(curve) : createFlowLoopPath(fromRegion),
+        taperedArrowPath: curve ? createFlowTaperedArrowPath(curve, strength) : "",
+        gradientStart: curve?.start ?? fromRegion.point,
+        gradientEnd: curve?.end ?? toRegion.point,
+        strength,
+      },
+    ];
+  });
+}) satisfies FlowEdge[];
+
+const flowCrossEdges = flowAllEdges
+  .filter((edge) => edge.from !== edge.to)
+  .sort((a, b) => b.count - a.count)
+  .map((edge, index) => ({ ...edge, rank: index + 1 }));
+const flowTopCrossEdges = flowCrossEdges.slice(0, 15);
+
+const flowModes: Record<FlowMode, { label: string; summary: string }> = {
+  all: {
+    label: "全部",
+    summary: "同时显示区域内环流和 Top 跨区束线，观察主结构与少数强通道。",
+  },
+  cross: {
+    label: "跨区",
+    summary: "隐藏自循环，只保留跨区 OD 束线，强流集中在 3↔6、1↔2、2↔5。",
+  },
+  internal: {
+    label: "区域内",
+    summary: "只看每个节点周围的环流，验证 85.11% 的订单没有离开所属热点区域。",
+  },
+  net: {
+    label: "净流向",
+    summary: "节点颜色强调净流入、净流出与平衡状态，跨区线作为方向参照。",
+  },
+};
+
+function formatSignedCount(value: number) {
+  if (value > 0) return `+${formatCount(value)}`;
+  if (value < 0) return `-${formatCount(Math.abs(value))}`;
+  return "0";
+}
+
+function flowStatusLabel(status: FlowStatus) {
+  if (status === "in") return "净流入";
+  if (status === "out") return "净流出";
+  return "基本平衡";
+}
 
 const cleanLabStages = [
   {
@@ -1638,6 +2222,917 @@ function DurationArticle({ isActivated }: { isActivated: boolean }) {
   );
 }
 
+function SpatialHotspotArticle({ isActivated }: { isActivated: boolean }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<SVGGElement>(null);
+  const globalPreviewTimelineRef = useRef<ReturnType<typeof gsap.timeline> | null>(null);
+  const globalPreviewTimeoutRef = useRef<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<SpatialHotspotId | null>(null);
+  const [isGlobalPreviewing, setIsGlobalPreviewing] = useState(false);
+  const reduceMotionRef = useRef(false);
+
+  const activeId = hoveredId;
+  const activeHotspot = activeId ? spatialHotspots.find((hotspot) => hotspot.id === activeId) ?? null : null;
+  const isOverviewMode = activeHotspot === null;
+  const activePoint = activeHotspot ? projectShanghaiPoint(activeHotspot.lng, activeHotspot.lat) : null;
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const ctx = gsap.context(() => {
+      setInsightMotionReady(root, false);
+      reduceMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const boundaryPaths = root.querySelectorAll<SVGPathElement>("[data-spatial-boundary-path]");
+      const landPaths = root.querySelectorAll<SVGPathElement>("[data-spatial-land-path]");
+      const dots = root.querySelectorAll<SVGCircleElement>("[data-spatial-dot]");
+      const hotspots = root.querySelectorAll<SVGGElement>("[data-spatial-hotspot]");
+      const panels = root.querySelectorAll<HTMLElement>("[data-spatial-panel]");
+      const labels = root.querySelectorAll<SVGTextElement>("[data-spatial-label]");
+      const waterLabels = root.querySelectorAll<SVGTextElement>("[data-spatial-water-label]");
+      const viewport = viewportRef.current;
+
+      if (!isActivated) {
+        return;
+      }
+
+      if (viewport) {
+        gsap.set(viewport, { attr: { transform: spatialMapTransformValue } });
+      }
+
+      if (reduceMotionRef.current) {
+        gsap.set([boundaryPaths, landPaths, dots, hotspots, panels, labels, waterLabels], { autoAlpha: 1, y: 0, scale: 1 });
+        setInsightMotionReady(root, true);
+        return;
+      }
+
+      boundaryPaths.forEach((path) => {
+        const length = path.getTotalLength();
+        gsap.set(path, { strokeDasharray: length, strokeDashoffset: length, autoAlpha: 1 });
+      });
+      gsap.set(landPaths, { autoAlpha: 0 });
+      gsap.set(dots, { autoAlpha: 0, scale: 0.25, transformOrigin: "50% 50%" });
+      gsap.set(hotspots, { autoAlpha: 0, scale: 0.68, transformOrigin: "50% 50%" });
+      gsap.set(labels, { autoAlpha: 0, y: 6 });
+      gsap.set(waterLabels, { autoAlpha: 0, y: 5 });
+      gsap.set(panels, { autoAlpha: 0, y: 12 });
+      setInsightMotionReady(root, true);
+
+      const tl = gsap.timeline({ defaults: { overwrite: "auto" } });
+      tl.to(landPaths, { autoAlpha: 1, duration: 0.38, ease: "power2.out" }, 0.02);
+      tl.to(boundaryPaths, { strokeDashoffset: 0, duration: 0.95, ease: LOGO_DRAW_EASE, stagger: 0.012 }, 0);
+      tl.to(waterLabels, { autoAlpha: 1, y: 0, duration: 0.28, ease: "power2.out" }, 0.34);
+      tl.to(dots, { autoAlpha: 1, scale: 1, duration: 0.56, ease: "power2.out", stagger: { each: 0.004, from: "center" } }, 0.28);
+      tl.to(hotspots, { autoAlpha: 1, scale: 1, duration: 0.42, ease: "back.out(1.7)", stagger: 0.045 }, 0.5);
+      tl.to(labels, { autoAlpha: 1, y: 0, duration: 0.28, ease: "power2.out", stagger: 0.035 }, 0.66);
+      tl.to(panels, { autoAlpha: 1, y: 0, duration: 0.32, ease: "power2.out", stagger: 0.04 }, 0.7);
+
+      return () => tl.kill();
+    }, root);
+
+    return () => ctx.revert();
+  }, [isActivated]);
+
+  useEffect(() => {
+    if (isActivated) {
+      setHoveredId(null);
+    }
+  }, [isActivated]);
+
+  useEffect(() => {
+    return () => {
+      globalPreviewTimelineRef.current?.kill();
+      if (globalPreviewTimeoutRef.current !== null) {
+        window.clearTimeout(globalPreviewTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const focusHotspot = (id: SpatialHotspotId) => {
+    setHoveredId(id);
+  };
+
+  const releaseHover = () => {
+    setHoveredId(null);
+  };
+
+  const showGlobalPreview = () => {
+    const viewport = viewportRef.current;
+    if (!viewport || isGlobalPreviewing) return;
+
+    globalPreviewTimelineRef.current?.kill();
+    if (globalPreviewTimeoutRef.current !== null) {
+      window.clearTimeout(globalPreviewTimeoutRef.current);
+      globalPreviewTimeoutRef.current = null;
+    }
+
+    setIsGlobalPreviewing(true);
+
+    if (reduceMotionRef.current) {
+      gsap.set(viewport, { attr: { transform: spatialGlobalMapTransformValue } });
+      globalPreviewTimeoutRef.current = window.setTimeout(() => {
+        gsap.set(viewport, { attr: { transform: spatialMapTransformValue } });
+        setIsGlobalPreviewing(false);
+        globalPreviewTimeoutRef.current = null;
+      }, 1000);
+      return;
+    }
+
+    globalPreviewTimelineRef.current = gsap
+      .timeline({
+        defaults: { overwrite: "auto" },
+        onComplete: () => {
+          setIsGlobalPreviewing(false);
+          globalPreviewTimelineRef.current = null;
+        },
+      })
+      .to(viewport, { attr: { transform: spatialGlobalMapTransformValue }, duration: 0.5, ease: "power3.inOut" })
+      .to(viewport, { duration: 1 })
+      .to(viewport, { attr: { transform: spatialMapTransformValue }, duration: 0.5, ease: "power3.inOut" });
+  };
+
+  return (
+    <InsightNewsShell slug="insight-05" label="空间热点聚类">
+      <div
+        ref={rootRef}
+        className="insight-spatial-shell"
+        data-active-hotspot={activeId ?? "all"}
+        data-motion-ready="false"
+      >
+        <section className="insight-spatial-board" aria-label="上海市摩拜骑行空间热点聚类">
+          <div className="insight-spatial-map-panel" data-spatial-panel="true">
+            <div className="insight-spatial-toolbar">
+              <div>
+                <p className="insight-news-section-tag">Shanghai Hotspots</p>
+                <h2>真实边界上的六簇空间密度</h2>
+              </div>
+              <div className="insight-spatial-toolbar-actions" data-spatial-panel="true">
+                <button
+                  type="button"
+                  className="insight-spatial-global-button"
+                  onClick={showGlobalPreview}
+                  disabled={isGlobalPreviewing}
+                  aria-label="短暂展示上海全貌后回到中心热点视图"
+                >
+                  展示全局
+                </button>
+                <div className="insight-spatial-metrics" aria-label="空间聚类概览">
+                  <span>
+                    <strong>K=6</strong>
+                    <em>KMeans 聚类</em>
+                  </span>
+                  <span>
+                    <strong>{formatCount(spatialHotspotTotal)}</strong>
+                    <em>有效订单</em>
+                  </span>
+                  <span>
+                    <strong>{spatialTopThreeShare.toFixed(1)}%</strong>
+                    <em>Top 3 占比</em>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="insight-spatial-map-wrap">
+              <svg
+                className="insight-spatial-map"
+                viewBox={`0 0 ${SHANGHAI_MAP_VIEWBOX.width} ${SHANGHAI_MAP_VIEWBOX.height}`}
+                role="img"
+                aria-label="上海市行政区边界与摩拜起点空间热点聚类图"
+              >
+                <defs>
+                  <radialGradient id="spatial-hotspot-gradient" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#fff0df" stopOpacity="0.98" />
+                    <stop offset="28%" stopColor="#ff654f" stopOpacity="0.66" />
+                    <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+
+                <g ref={viewportRef} className="insight-spatial-viewport" transform={spatialMapTransformValue}>
+                  <g className="insight-spatial-land-fill" aria-hidden="true">
+                    {shanghaiMapRegions.map((region) => (
+                      <path
+                        key={`land-${region.adcode}`}
+                        className="insight-spatial-land"
+                        data-spatial-land-path="true"
+                        d={region.path}
+                      />
+                    ))}
+                  </g>
+
+                  <g className="insight-spatial-districts" aria-hidden="true">
+                    {shanghaiMapRegions.map((region) => (
+                      <path
+                        key={region.adcode}
+                        className="insight-spatial-district"
+                        data-spatial-boundary-path="true"
+                        d={region.path}
+                      />
+                    ))}
+                  </g>
+
+                  <g className="insight-spatial-water-labels" aria-hidden="true">
+                    <text
+                      x={projectShanghaiPoint(121.61, 31.39).x}
+                      y={projectShanghaiPoint(121.61, 31.39).y}
+                      data-spatial-water-label="true"
+                      style={{ fontSize: `${16.5 * spatialSymbolScale}px`, strokeWidth: `${3.4 * spatialSymbolScale}px` }}
+                    >
+                      长江口水域
+                    </text>
+                    <text
+                      x={projectShanghaiPoint(121.49, 31.245).x}
+                      y={projectShanghaiPoint(121.49, 31.245).y}
+                      data-spatial-water-label="true"
+                      style={{ fontSize: `${16.5 * spatialSymbolScale}px`, strokeWidth: `${3.4 * spatialSymbolScale}px` }}
+                    >
+                      黄浦江
+                    </text>
+                  </g>
+
+                  <g className="insight-spatial-dot-cloud" aria-hidden="true">
+                    {spatialHotspotDots.map((dot) => {
+                      const isActive = isOverviewMode || dot.hotspotId === activeId;
+                      const isDimmed = !isActive;
+
+                      return (
+                        <circle
+                          key={dot.id}
+                          className={`insight-spatial-dot${isActive ? " is-active" : ""}${isDimmed ? " is-dimmed" : ""}`}
+                          data-spatial-dot="true"
+                          cx={dot.x.toFixed(2)}
+                          cy={dot.y.toFixed(2)}
+                          r={dot.radius.toFixed(2)}
+                          style={{ opacity: dot.opacity }}
+                        />
+                      );
+                    })}
+                  </g>
+
+                  <g className="insight-spatial-hotspots">
+                    {spatialHotspots.map((hotspot) => {
+                      const point = projectShanghaiPoint(hotspot.lng, hotspot.lat);
+                      const isActive = isOverviewMode || hotspot.id === activeId;
+                      const isDimmed = !isActive;
+                      const outerRadius = (34 + hotspot.radiusKm * 9 + Math.max(0, 7 - hotspot.rank) * 1.6) * spatialSymbolScale;
+                      const midRadius = (13 + hotspot.radiusKm * 2.8) * spatialSymbolScale;
+                      const coreRadius = 5.8 * spatialSymbolScale;
+                      const labelOffsetX = 16 * spatialSymbolScale;
+                      const labelOffsetY = 15 * spatialSymbolScale;
+
+                      return (
+                        <g
+                          key={hotspot.id}
+                          className={`insight-spatial-hotspot${isActive ? " is-active" : ""}${isDimmed ? " is-dimmed" : ""}${hotspot.rank <= 3 ? " is-top" : ""}`}
+                          data-spatial-hotspot="true"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`${hotspot.name}，${formatCount(hotspot.orders)} 单，占 ${hotspot.percent.toFixed(1)}%`}
+                          aria-pressed={activeId === hotspot.id}
+                          onClick={() => focusHotspot(hotspot.id)}
+                          onMouseEnter={() => setHoveredId(hotspot.id)}
+                          onFocus={() => setHoveredId(hotspot.id)}
+                          onMouseLeave={releaseHover}
+                          onBlur={releaseHover}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              focusHotspot(hotspot.id);
+                            }
+                          }}
+                        >
+                          <circle className="insight-spatial-hit" cx={point.x} cy={point.y} r={outerRadius + 18 * spatialSymbolScale} />
+                          <circle className="insight-spatial-heat insight-spatial-heat--outer" cx={point.x} cy={point.y} r={outerRadius} />
+                          <circle className="insight-spatial-heat insight-spatial-heat--mid" cx={point.x} cy={point.y} r={midRadius} />
+                          <circle className="insight-spatial-core" cx={point.x} cy={point.y} r={coreRadius} />
+                          <text className="insight-spatial-rank" x={point.x} y={point.y + 3.8 * spatialSymbolScale} style={{ fontSize: `${7 * spatialSymbolScale}px` }}>{hotspot.rank}</text>
+                          <text className="insight-spatial-label" data-spatial-label="true" x={point.x + labelOffsetX} y={point.y - labelOffsetY} style={{ fontSize: `${16.5 * spatialSymbolScale}px`, strokeWidth: `${4.2 * spatialSymbolScale}px` }}>{hotspot.area}</text>
+                        </g>
+                      );
+                    })}
+                  </g>
+
+                  {activePoint ? (
+                    <g className="insight-spatial-crosshair" aria-hidden="true">
+                      <line x1={activePoint.x - spatialCrosshairSize} x2={activePoint.x + spatialCrosshairSize} y1={activePoint.y} y2={activePoint.y} />
+                      <line x1={activePoint.x} x2={activePoint.x} y1={activePoint.y - spatialCrosshairSize} y2={activePoint.y + spatialCrosshairSize} />
+                    </g>
+                  ) : null}
+                </g>
+              </svg>
+            </div>
+
+            <div className="insight-spatial-composition" data-spatial-panel="true" aria-label="六个空间热点订单占比">
+              {spatialHotspots.map((hotspot) => (
+                <button
+                  key={hotspot.id}
+                  type="button"
+                  className={hotspot.id === activeId ? "is-active" : ""}
+                  style={{ flexGrow: hotspot.percent }}
+                  onClick={() => focusHotspot(hotspot.id)}
+                  onMouseEnter={() => setHoveredId(hotspot.id)}
+                  onFocus={() => setHoveredId(hotspot.id)}
+                  onMouseLeave={releaseHover}
+                  onBlur={releaseHover}
+                  aria-label={`${hotspot.name} 占 ${hotspot.percent.toFixed(1)}%`}
+                >
+                  <span>{hotspot.rank}</span>
+                  <strong>{hotspot.percent.toFixed(1)}%</strong>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <aside className="insight-spatial-side" data-spatial-panel="true" aria-label="当前空间热点信息">
+            <div className="insight-spatial-focus">
+              <p className="insight-news-section-tag">{isOverviewMode ? "全局概览" : "Selected Cluster"}</p>
+              <span>{activeHotspot ? `#${activeHotspot.rank.toString().padStart(2, "0")}` : "ALL"}</span>
+              <h3>{activeHotspot ? activeHotspot.name : "全部空间热点"}</h3>
+              <strong>{formatCount(activeHotspot ? activeHotspot.orders : spatialHotspotTotal)}</strong>
+              <em>{activeHotspot ? `${activeHotspot.percent.toFixed(1)}% of cleaned trips` : "六簇空间热点"}</em>
+              <p>{activeHotspot ? activeHotspot.summary : "覆盖全市清洗订单。"}</p>
+              <dl>
+                {activeHotspot ? (
+                  <>
+                    <div>
+                      <dt>中心经度</dt>
+                      <dd>{activeHotspot.lng.toFixed(4)}</dd>
+                    </div>
+                    <div>
+                      <dt>中心纬度</dt>
+                      <dd>{activeHotspot.lat.toFixed(4)}</dd>
+                    </div>
+                    <div>
+                      <dt>扩散半径</dt>
+                      <dd>{activeHotspot.radiusKm.toFixed(1)}km</dd>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <dt>聚类数量</dt>
+                      <dd>K=6</dd>
+                    </div>
+                    <div>
+                      <dt>有效订单</dt>
+                      <dd>{formatCount(spatialHotspotTotal)}</dd>
+                    </div>
+                    <div>
+                      <dt>显示状态</dt>
+                      <dd>ALL</dd>
+                    </div>
+                  </>
+                )}
+              </dl>
+            </div>
+
+            <div className="insight-spatial-list" aria-label="切换六个空间热点">
+              {spatialHotspots.map((hotspot) => (
+                <button
+                  key={hotspot.id}
+                  type="button"
+                  className={hotspot.id === activeId ? "is-active" : ""}
+                  onClick={() => focusHotspot(hotspot.id)}
+                  onMouseEnter={() => setHoveredId(hotspot.id)}
+                  onFocus={() => setHoveredId(hotspot.id)}
+                  onMouseLeave={releaseHover}
+                  onBlur={releaseHover}
+                  aria-pressed={activeId === hotspot.id}
+                >
+                  <span>{hotspot.rank}</span>
+                  <strong>{hotspot.area}</strong>
+                  <em>{formatCount(hotspot.orders)}</em>
+                </button>
+              ))}
+            </div>
+
+            <p className="insight-spatial-source">
+              上海骑行热点分布
+              <span>清洗数据覆盖全市，六簇中心集中在核心城区</span>
+            </p>
+          </aside>
+        </section>
+      </div>
+    </InsightNewsShell>
+  );
+}
+
+function FlowDirectionArticle({ isActivated }: { isActivated: boolean }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<SVGGElement>(null);
+  const globalPreviewTimelineRef = useRef<ReturnType<typeof gsap.timeline> | null>(null);
+  const globalPreviewTimeoutRef = useRef<number | null>(null);
+  const [mode, setMode] = useState<FlowMode>("all");
+  const [topLimit, setTopLimit] = useState<FlowTopLimit>(10);
+  const [selection, setSelection] = useState<FlowSelection | null>(null);
+  const [isGlobalPreviewing, setIsGlobalPreviewing] = useState(false);
+  const reduceMotionRef = useRef(false);
+
+  const selectedRegion = selection?.kind === "region" ? getFlowRegion(selection.regionId) : null;
+  const selectedEdge = selection?.kind === "edge" ? flowTopCrossEdges.find((edge) => edge.id === selection.edgeId) ?? null : null;
+  const activeRegionIds = useMemo(() => {
+    const ids = new Set<FlowRegionId>();
+    if (selectedRegion) ids.add(selectedRegion.id);
+    if (selectedEdge) {
+      ids.add(selectedEdge.from);
+      ids.add(selectedEdge.to);
+    }
+    return ids;
+  }, [selectedEdge, selectedRegion]);
+  const hasSelection = selection !== null;
+  const showCrossEdges = mode !== "internal";
+  const showLoops = mode !== "cross";
+  const activePanelRegion = selectedRegion ?? selectedEdge?.toRegion ?? null;
+
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    reduceMotionRef.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const flowElements = root.querySelectorAll<Element>(
+      [
+        "[data-flow-boundary-path]",
+        "[data-flow-land-path]",
+        "[data-flow-animated-path]",
+        "[data-flow-ribbon-path]",
+        "[data-flow-node]",
+        "[data-flow-panel]",
+        "[data-flow-label]",
+        "[data-flow-share-fill]",
+      ].join(","),
+    );
+    gsap.killTweensOf(flowElements);
+    gsap.set(flowElements, { clearProps: "opacity,visibility,transform,strokeDasharray,strokeDashoffset" });
+    setInsightMotionReady(root, true);
+  }, [isActivated]);
+
+  useEffect(() => {
+    if (!isActivated) return;
+
+    setMode("all");
+    setTopLimit(10);
+    setSelection(null);
+  }, [isActivated]);
+
+  useEffect(() => {
+    return () => {
+      globalPreviewTimelineRef.current?.kill();
+      if (globalPreviewTimeoutRef.current !== null) {
+        window.clearTimeout(globalPreviewTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const changeFlowMode = useCallback((nextMode: FlowMode) => {
+    setMode((current) => (current === nextMode ? current : nextMode));
+  }, []);
+
+  const changeTopLimit = useCallback((nextLimit: FlowTopLimit) => {
+    setTopLimit((current) => (current === nextLimit ? current : nextLimit));
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelection((current) => (current === null ? current : null));
+  }, []);
+
+  const selectRegion = useCallback((regionId: FlowRegionId) => {
+    setSelection((current) =>
+      current?.kind === "region" && current.regionId === regionId ? current : { kind: "region", regionId },
+    );
+  }, []);
+
+  const selectEdge = useCallback((edgeId: string) => {
+    setSelection((current) => (current?.kind === "edge" && current.edgeId === edgeId ? current : { kind: "edge", edgeId }));
+  }, []);
+
+  const showGlobalPreview = () => {
+    const viewport = viewportRef.current;
+    if (!viewport || isGlobalPreviewing) return;
+
+    globalPreviewTimelineRef.current?.kill();
+    if (globalPreviewTimeoutRef.current !== null) {
+      window.clearTimeout(globalPreviewTimeoutRef.current);
+      globalPreviewTimeoutRef.current = null;
+    }
+
+    setIsGlobalPreviewing(true);
+
+    if (reduceMotionRef.current) {
+      gsap.set(viewport, { attr: { transform: flowGlobalMapTransformValue } });
+      globalPreviewTimeoutRef.current = window.setTimeout(() => {
+        gsap.set(viewport, { attr: { transform: flowMapTransformValue } });
+        setIsGlobalPreviewing(false);
+        globalPreviewTimeoutRef.current = null;
+      }, 1000);
+      return;
+    }
+
+    globalPreviewTimelineRef.current = gsap
+      .timeline({
+        defaults: { overwrite: "auto" },
+        onComplete: () => {
+          setIsGlobalPreviewing(false);
+          globalPreviewTimelineRef.current = null;
+        },
+      })
+      .to(viewport, { attr: { transform: flowGlobalMapTransformValue }, duration: 0.5, ease: "power3.inOut" })
+      .to(viewport, { duration: 1 })
+      .to(viewport, { attr: { transform: flowMapTransformValue }, duration: 0.5, ease: "power3.inOut" });
+  };
+
+  return (
+    <InsightNewsShell slug="insight-06" label="区域流向分析">
+      <div
+        ref={rootRef}
+        className="insight-flow-shell"
+        data-flow-mode={mode}
+        data-motion-ready="true"
+      >
+        <section className="insight-flow-board" aria-label="上海市摩拜区域流向分析">
+          <div className="insight-flow-map-panel">
+            <div className="insight-flow-toolbar">
+              <div className="insight-flow-toolbar-copy">
+                <p className="insight-news-section-tag">Shanghai OD Flow</p>
+                <h2>区域内循环占绝对主导</h2>
+              </div>
+              <div className="insight-flow-toolbar-actions" data-flow-panel="true">
+                <button
+                  type="button"
+                  className="insight-flow-global-button"
+                  onClick={showGlobalPreview}
+                  disabled={isGlobalPreviewing}
+                  aria-label="短暂展示上海全局后回到六个流向区域"
+                >
+                  展示全局
+                </button>
+                <div className="insight-flow-mode-tabs" role="tablist" aria-label="流向显示模式">
+                  {flowModeOrder.map((modeKey) => (
+                    <button
+                      key={modeKey}
+                      type="button"
+                      role="tab"
+                      aria-selected={mode === modeKey}
+                      className={mode === modeKey ? "is-active" : ""}
+                      onClick={() => changeFlowMode(modeKey)}
+                    >
+                      {flowModes[modeKey].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="insight-flow-map-wrap">
+              <svg
+                className="insight-flow-map"
+                viewBox={`0 0 ${SHANGHAI_MAP_VIEWBOX.width} ${SHANGHAI_MAP_VIEWBOX.height}`}
+                role="img"
+                aria-label="上海市行政区地图上的共享单车区域流向"
+              >
+                <defs>
+                  <radialGradient id="flow-node-gold-gradient" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#fff5d8" stopOpacity="0.98" />
+                    <stop offset="42%" stopColor="#d6a84c" stopOpacity="0.74" />
+                    <stop offset="100%" stopColor="#9b6a25" stopOpacity="0" />
+                  </radialGradient>
+                  <marker
+                    id="flow-loop-arrow"
+                    viewBox="0 -3 7 6"
+                    refX="6.2"
+                    refY="0"
+                    markerWidth="3.2"
+                    markerHeight="3.2"
+                    orient="auto"
+                    markerUnits="strokeWidth"
+                  >
+                    <path d="M 0 -2.7 L 7 0 L 0 2.7 Z" fill="#e8bc5b" />
+                  </marker>
+                  {flowTopCrossEdges.map((edge) => (
+                    <linearGradient
+                      key={`flow-edge-gradient-${edge.id}`}
+                      id={`flow-edge-gradient-${edge.id}`}
+                      gradientUnits="userSpaceOnUse"
+                      x1={edge.gradientStart.x}
+                      y1={edge.gradientStart.y}
+                      x2={edge.gradientEnd.x}
+                      y2={edge.gradientEnd.y}
+                    >
+                      <stop offset="0%" stopColor="#b98536" stopOpacity="0.08" />
+                      <stop offset="30%" stopColor="#d6a84c" stopOpacity="0.2" />
+                      <stop offset="68%" stopColor="#e8bc5b" stopOpacity="0.58" />
+                      <stop offset="100%" stopColor="#ffe3a3" stopOpacity="0.98" />
+                    </linearGradient>
+                  ))}
+                </defs>
+
+                <g ref={viewportRef} className="insight-flow-viewport" transform={flowMapTransformValue}>
+                  <g className="insight-flow-land-fill" aria-hidden="true">
+                    {shanghaiMapRegions.map((region) => (
+                      <path
+                        key={`flow-land-${region.adcode}`}
+                        className="insight-flow-land"
+                        data-flow-land-path="true"
+                        d={region.path}
+                      />
+                    ))}
+                  </g>
+
+                  <g className="insight-flow-districts" aria-hidden="true">
+                    {shanghaiMapRegions.map((region) => (
+                      <path
+                        key={`flow-boundary-${region.adcode}`}
+                        className="insight-flow-district"
+                        data-flow-boundary-path="true"
+                        d={region.path}
+                      />
+                    ))}
+                  </g>
+
+                  <g className="insight-flow-water-labels" aria-hidden="true">
+                    <text
+                      x={projectShanghaiPoint(121.61, 31.39).x}
+                      y={projectShanghaiPoint(121.61, 31.39).y}
+                      data-flow-label="true"
+                      style={{ fontSize: `${15.5 * flowSymbolScale}px`, strokeWidth: `${3.3 * flowSymbolScale}px` }}
+                    >
+                      长江口水域
+                    </text>
+                    <text
+                      x={projectShanghaiPoint(121.49, 31.245).x}
+                      y={projectShanghaiPoint(121.49, 31.245).y}
+                      data-flow-label="true"
+                      style={{ fontSize: `${15.5 * flowSymbolScale}px`, strokeWidth: `${3.3 * flowSymbolScale}px` }}
+                    >
+                      黄浦江
+                    </text>
+                  </g>
+
+                  <g className="insight-flow-loops" aria-hidden={showLoops ? undefined : true}>
+                    {flowRegions.map((region) => {
+                      const isActive = !hasSelection || activeRegionIds.has(region.id);
+                      const isDimmed = hasSelection && !isActive;
+
+                      return (
+                        <path
+                          key={`loop-${region.id}`}
+                          className={`insight-flow-loop${isActive ? " is-active" : ""}${isDimmed ? " is-dimmed" : ""}${showLoops ? "" : " is-hidden"}`}
+                          data-flow-animated-path="true"
+                          d={createFlowLoopPath(region)}
+                          markerEnd="url(#flow-loop-arrow)"
+                          style={{ strokeWidth: flowLoopStrokeWidth(region) }}
+                        />
+                      );
+                    })}
+                  </g>
+
+                  <g className="insight-flow-edges">
+                    {flowTopCrossEdges.map((edge) => {
+                      const isRelatedToRegion = selectedRegion ? edge.from === selectedRegion.id || edge.to === selectedRegion.id : false;
+                      const isSelectedEdge = selectedEdge?.id === edge.id;
+                      const isActive = !hasSelection || isRelatedToRegion || isSelectedEdge;
+                      const isDimmed = hasSelection && !isActive;
+                      const isWithinTopLimit = edge.rank <= topLimit;
+
+                      return (
+                        <g
+                          key={edge.id}
+                          className={`insight-flow-edge${isActive ? " is-active" : ""}${isDimmed ? " is-dimmed" : ""}${showCrossEdges && isWithinTopLimit ? "" : " is-hidden"}`}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`R${edge.fromRegion.regionNo} 到 R${edge.toRegion.regionNo}，${formatCount(edge.count)} 单`}
+                          aria-pressed={isSelectedEdge}
+                          onClick={() => selectEdge(edge.id)}
+                          onFocus={() => selectEdge(edge.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              selectEdge(edge.id);
+                            }
+                          }}
+                        >
+                          <path className="insight-flow-edge-hit" d={edge.path} />
+                          <path
+                            className="insight-flow-edge-shape"
+                            data-flow-ribbon-path="true"
+                            d={edge.taperedArrowPath}
+                            fill={`url(#flow-edge-gradient-${edge.id})`}
+                          />
+                        </g>
+                      );
+                    })}
+                  </g>
+
+                  <g className="insight-flow-nodes">
+                    {flowRegions.map((region) => {
+                      const isActive = !hasSelection || activeRegionIds.has(region.id);
+                      const isDimmed = hasSelection && !isActive;
+                      const labelOffsetX = 15 * flowSymbolScale;
+                      const labelOffsetY = 15 * flowSymbolScale;
+
+                      return (
+                        <g
+                          key={region.id}
+                          className={`insight-flow-node${isActive ? " is-active" : ""}${isDimmed ? " is-dimmed" : ""}`}
+                          data-flow-node="true"
+                          data-flow-status={region.status}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`R${region.regionNo} ${region.name}，净流向 ${formatSignedCount(region.netFlow)}`}
+                          aria-pressed={selectedRegion?.id === region.id}
+                          onClick={() => selectRegion(region.id)}
+                          onFocus={() => selectRegion(region.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              selectRegion(region.id);
+                            }
+                          }}
+                        >
+                          <circle className="insight-flow-node-hit" cx={region.point.x} cy={region.point.y} r={region.nodeRadius + 20 * flowSymbolScale} />
+                          <circle className="insight-flow-node-aura" cx={region.point.x} cy={region.point.y} r={region.nodeRadius * 2.72} />
+                          <circle className="insight-flow-node-ring" cx={region.point.x} cy={region.point.y} r={region.nodeRadius * 1.42} />
+                          <circle className="insight-flow-node-core" cx={region.point.x} cy={region.point.y} r={region.nodeRadius} />
+                          <text className="insight-flow-node-id" x={region.point.x} y={region.point.y + 4.1 * flowSymbolScale} style={{ fontSize: `${8 * flowSymbolScale}px` }}>
+                            {region.regionNo}
+                          </text>
+                          <text
+                            className="insight-flow-node-label"
+                            data-flow-label="true"
+                            x={region.point.x + labelOffsetX}
+                            y={region.point.y - labelOffsetY}
+                            style={{ fontSize: `${15.5 * flowSymbolScale}px`, strokeWidth: `${4 * flowSymbolScale}px` }}
+                          >
+                            {region.area}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </g>
+                </g>
+              </svg>
+            </div>
+
+            <div className="insight-flow-share-rail" data-flow-panel="true" aria-label="区域内与跨区流动占比">
+              <div className="insight-flow-share-track">
+                <span
+                  className="insight-flow-share-fill insight-flow-share-fill--internal"
+                  data-flow-share-fill="true"
+                  style={{ width: `${flowInternalShare.toFixed(2)}%` }}
+                />
+                <span
+                  className="insight-flow-share-fill insight-flow-share-fill--cross"
+                  data-flow-share-fill="true"
+                  style={{ width: `${flowCrossShare.toFixed(2)}%` }}
+                />
+              </div>
+              <div className="insight-flow-share-copy">
+                <span>区域内循环</span>
+                <strong>{flowInternalShare.toFixed(2)}%</strong>
+                <em>{formatCount(flowInternalTrips)} 单</em>
+                <span>跨区流动</span>
+                <strong>{flowCrossShare.toFixed(2)}%</strong>
+                <em>{formatCount(flowCrossTrips)} 单</em>
+              </div>
+            </div>
+          </div>
+
+          <aside className="insight-flow-side" data-flow-panel="true" aria-label="流向分析控制台">
+            <div className="insight-flow-focus">
+              <div className="insight-flow-focus-head">
+                <p className="insight-news-section-tag">{selectedEdge ? "Selected Flow" : selectedRegion ? "Selected Region" : "Core Reading"}</p>
+                <button type="button" className="insight-flow-reset" onClick={clearSelection} aria-label="清除当前选择">
+                  <RotateCcw size={14} aria-hidden="true" />
+                  <span>重置</span>
+                </button>
+              </div>
+
+              {selectedEdge ? (
+                <>
+                  <span className="insight-flow-focus-code">R{selectedEdge.fromRegion.regionNo} -&gt; R{selectedEdge.toRegion.regionNo}</span>
+                  <h3>{selectedEdge.fromRegion.area} 到 {selectedEdge.toRegion.area}</h3>
+                  <strong>{formatCount(selectedEdge.count)}</strong>
+                  <em>{selectedEdge.percent.toFixed(2)}% of cleaned trips</em>
+                  <p>{selectedEdge.rank <= 10 ? "Top 10 跨区强流之一，代表热点之间少量但方向清晰的外溢需求。" : "跨区流线的尾部补充通道，用来解释较弱但仍可见的连接。"}</p>
+                  <dl>
+                    <div>
+                      <dt>起点区域</dt>
+                      <dd>R{selectedEdge.fromRegion.regionNo}</dd>
+                    </div>
+                    <div>
+                      <dt>终点区域</dt>
+                      <dd>R{selectedEdge.toRegion.regionNo}</dd>
+                    </div>
+                    <div>
+                      <dt>排名</dt>
+                      <dd>#{selectedEdge.rank}</dd>
+                    </div>
+                  </dl>
+                </>
+              ) : activePanelRegion ? (
+                <>
+                  <span className="insight-flow-focus-code">R{activePanelRegion.regionNo} / {flowStatusLabel(activePanelRegion.status)}</span>
+                  <h3>{activePanelRegion.name}</h3>
+                  <strong>{formatSignedCount(activePanelRegion.netFlow)}</strong>
+                  <em>net inflow minus outflow</em>
+                  <p>{activePanelRegion.summary}</p>
+                  <dl>
+                    <div>
+                      <dt>流入</dt>
+                      <dd>{formatCount(activePanelRegion.incoming)}</dd>
+                    </div>
+                    <div>
+                      <dt>流出</dt>
+                      <dd>{formatCount(activePanelRegion.outgoing)}</dd>
+                    </div>
+                    <div>
+                      <dt>自循环</dt>
+                      <dd>{activePanelRegion.internalShare.toFixed(1)}%</dd>
+                    </div>
+                  </dl>
+                </>
+              ) : (
+                <>
+                  <span className="insight-flow-focus-code">ALL / OD MATRIX</span>
+                  <h3>车辆更像在区域内周转</h3>
+                  <strong>{flowInternalShare.toFixed(2)}%</strong>
+                  <em>{formatCount(flowInternalTrips)} internal trips</em>
+                  <p>{flowModes[mode].summary}</p>
+                  <dl>
+                    <div>
+                      <dt>总订单</dt>
+                      <dd>{formatCount(flowTotalTrips)}</dd>
+                    </div>
+                    <div>
+                      <dt>区域内</dt>
+                      <dd>{formatCount(flowInternalTrips)}</dd>
+                    </div>
+                    <div>
+                      <dt>跨区</dt>
+                      <dd>{formatCount(flowCrossTrips)}</dd>
+                    </div>
+                  </dl>
+                </>
+              )}
+            </div>
+
+            <div className="insight-flow-top">
+              <div className="insight-flow-top-head">
+                <p className="insight-news-section-tag">跨域流量排行榜</p>
+                <div className="insight-flow-limit" aria-label="选择跨区流向数量">
+                  {flowTopLimits.map((limit) => (
+                    <button
+                      key={limit}
+                      type="button"
+                      className={topLimit === limit ? "is-active" : ""}
+                      onClick={() => changeTopLimit(limit)}
+                      aria-pressed={topLimit === limit}
+                    >
+                      {limit}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="insight-flow-top-list" aria-label="跨区流向排名">
+                {flowTopCrossEdges.slice(0, topLimit).map((edge) => (
+                  <button
+                    key={`top-${edge.id}`}
+                    type="button"
+                    className={selectedEdge?.id === edge.id ? "is-active" : ""}
+                    onClick={() => selectEdge(edge.id)}
+                    onFocus={() => selectEdge(edge.id)}
+                    aria-pressed={selectedEdge?.id === edge.id}
+                  >
+                    <span>{edge.rank.toString().padStart(2, "0")}</span>
+                    <strong>R{edge.fromRegion.regionNo} -&gt; R{edge.toRegion.regionNo}</strong>
+                    <em>{formatCount(edge.count)}</em>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="insight-flow-region-strip" aria-label="六个区域净流向">
+              {flowRegions.map((region) => (
+                <button
+                  key={`strip-${region.id}`}
+                  type="button"
+                  className={selectedRegion?.id === region.id ? "is-active" : ""}
+                  data-flow-status={region.status}
+                  onClick={() => selectRegion(region.id)}
+                  onFocus={() => selectRegion(region.id)}
+                  aria-pressed={selectedRegion?.id === region.id}
+                >
+                  <span>R{region.regionNo}</span>
+                  <strong>{formatSignedCount(region.netFlow)}</strong>
+                </button>
+              ))}
+            </div>
+          </aside>
+        </section>
+      </div>
+    </InsightNewsShell>
+  );
+}
+
 function tokenLayout(index: number, stageIndex: number): CleanLabTokenLayout {
   const token = cleanLabTokens[index];
   const role = token.role;
@@ -2299,6 +3794,14 @@ export function InsightArticleContent({ slug, isActivated = true }: { slug: Insi
 
   if (slug === "insight-04") {
     return <DurationArticle isActivated={isActivated} />;
+  }
+
+  if (slug === "insight-05") {
+    return <SpatialHotspotArticle isActivated={isActivated} />;
+  }
+
+  if (slug === "insight-06") {
+    return <FlowDirectionArticle isActivated={isActivated} />;
   }
 
   return <PlaceholderArticle slug={slug} />;
