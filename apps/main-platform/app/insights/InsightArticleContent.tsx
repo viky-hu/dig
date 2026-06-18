@@ -15,11 +15,145 @@ const INSIGHT_TITLES: Record<InsightSlug, string> = {
   "insight-04": "骑行时长",
   "insight-05": "空间热点聚类",
   "insight-06": "区域流向分析",
-  "insight-07": "区域画像对比",
+  "insight-07": "成员介绍",
   "insight-08": "结论、局限与展望",
 };
 
 const numberFormatter = new Intl.NumberFormat("en-US");
+
+type MemberIconType = "document" | "mining" | "frontend" | "slides-polish" | "slides-review";
+
+type MemberProfile = {
+  name: string;
+  roleLead: string;
+  roleTrail: string;
+  description: string;
+  icon: MemberIconType;
+};
+
+const memberProfiles = [
+  {
+    name: "王海涛",
+    roleLead: "论文文档",
+    roleTrail: "讲解答辩",
+    description:
+      "负责项目论文与报告文档的撰写、内容整合，并承担最终讲解与答辩展示任务，确保研究过程、分析结论和展示表达能够完整衔接。",
+    icon: "document",
+  },
+  {
+    name: "陈书扬",
+    roleLead: "选题规划",
+    roleTrail: "数据挖掘",
+    description:
+      "参与确定项目选题与主题方向，负责演示文稿前期内容框架与初版制作，并完成上海摩拜单车数据挖掘流程与结果整理，为后续展示提供数据基础。",
+    icon: "mining",
+  },
+  {
+    name: "胡继天",
+    roleLead: "演示网页",
+    roleTrail: "前端实现",
+    description:
+      "基于数据挖掘结果完成项目演示网页的前端实现，负责页面结构、视觉呈现与交互动效搭建；本展示页以本地数据和前端渲染为主，不涉及后端接口对接。",
+    icon: "frontend",
+  },
+  {
+    name: "喻圣文",
+    roleLead: "PPT 后期",
+    roleTrail: "深度加工",
+    description:
+      "接手演示文稿后期深度加工，围绕内容逻辑、视觉层次和表达节奏进行打磨优化，提升汇报材料的完整度与展示效果。",
+    icon: "slides-polish",
+  },
+  {
+    name: "王潘毅",
+    roleLead: "PPT 优化",
+    roleTrail: "协同完善",
+    description:
+      "参与演示文稿后期深化与优化，协同完善版式细节、内容呈现和汇报节奏，保障最终展示材料的一致性与完成度。",
+    icon: "slides-review",
+  },
+] as const satisfies readonly MemberProfile[];
+
+type ConclusionPanelType = "finding" | "limit" | "outlook";
+
+type ConclusionPanel = {
+  type: ConclusionPanelType;
+  label: string;
+  title: string;
+  lead: string;
+  points: readonly string[];
+};
+
+const conclusionPanels = [
+  {
+    type: "finding",
+    label: "总结",
+    title: "共享单车承担城市短途接驳",
+    lead: "工作日双峰、5~20 分钟短途、区域内循环共同指向同一个结论：摩拜主要服务地铁站、办公区、商业区与居住区之间的微出行。",
+    points: [
+      "工作日订单 76,044 单，占 74.4%；08:00 与 18:00 构成明确通勤双峰。",
+      "63.7% 的骑行集中在 5~20 分钟，中位数 11 分钟，符合最后一公里定位。",
+      "Top 3 热点区域贡献 59.6% 订单，区域内骑行占 85%+。",
+    ],
+  },
+  {
+    type: "limit",
+    label: "不足",
+    title: "样本与模型仍然压缩了现实",
+    lead: "当前分析足以支撑期末展示，但仍主要依赖 2016 年 8 月订单与起终点坐标，尚未引入影响出行选择的外部变量。",
+    points: [
+      "未引入天气、节假日、地铁站点等外部因素，解释范围集中在订单自身特征。",
+      "KMeans 需要预设 K 值，肘部法则只能辅助判断，仍存在一定主观性。",
+      "OD 矩阵以聚类区域汇总流向，无法还原完整的地铁、步行等复合通勤链路。",
+    ],
+  },
+  {
+    type: "outlook",
+    label: "展望",
+    title: "下一步让城市语境进入模型",
+    lead: "后续可以把订单数据与城市设施、天气节假日和更细粒度路网结合，让热点、流向与调度建议更接近真实运营场景。",
+    points: [
+      "补充天气、节假日、轨交站点、商圈与居住区等多源变量。",
+      "对比 DBSCAN、层次聚类等空间模型，检验热点边界与 K 值选择的稳定性。",
+      "从展示层继续强化模块联动，让时间、空间、流向结论形成统一解释链。",
+    ],
+  },
+] as const satisfies readonly ConclusionPanel[];
+
+type ConclusionDonutSegment = {
+  label: string;
+  value: number;
+  color: string;
+};
+
+const conclusionDonutSegments = [
+  { label: "<5min", value: 7.8, color: "#b9c6ff" },
+  { label: "5-10", value: 31.9, color: "#dfc16f" },
+  { label: "10-15", value: 21.8, color: "#f1df9b" },
+  { label: "15-20", value: 12.7, color: "#9ed8c6" },
+  { label: "20-30", value: 13.8, color: "#7fb6d9" },
+  { label: "30min+", value: 11.9, color: "#d69273" },
+] as const satisfies readonly ConclusionDonutSegment[];
+
+const conclusionMetrics = [
+  { value: "63.7%", label: "5~20 分钟", note: "骑行主区间" },
+  { value: "11", label: "分钟", note: "骑行中位数" },
+  { value: "74.4%", label: "工作日订单", note: "通勤属性明显" },
+] as const;
+
+const limitationItems = [
+  { title: "KMeans", summary: "需预设 K 值", detail: "结果依赖聚类数量，适合概括热点。" },
+  { title: "肘部法则", summary: "肘点判断偏主观", detail: "曲线转折不总是清晰，需要业务理解辅助。" },
+] as const;
+
+type OutlookIconType = "idea" | "algorithm" | "platform" | "system";
+
+const outlookTiles = [
+  { label: "增添开发创意", icon: "idea" },
+  { label: "更新挖掘算法", icon: "algorithm" },
+  { label: "重构网页平台", icon: "platform" },
+  { label: "建立真实系统", icon: "system" },
+] as const satisfies readonly { label: string; icon: OutlookIconType }[];
 
 const overviewOrderStats = {
   rawOrders: 102_361,
@@ -142,12 +276,14 @@ const TIME_CHART = {
 
 const TIME_COMPARE = {
   width: 620,
-  height: 118,
-  left: 28,
-  right: 18,
-  top: 18,
-  bottom: 88,
+  height: 136,
+  left: 52,
+  right: 20,
+  top: 16,
+  bottom: 100,
 };
+
+const timeCompareHourTicks = [0, 6, 12, 18, 23] as const;
 
 type DurationMode = "all" | "core" | "tail";
 type DurationGroup = "short" | "core" | "regular" | "tail";
@@ -1527,6 +1663,16 @@ function compareLinePath(kind: "weekday" | "weekend") {
     .join(" ");
 }
 
+function timeCompareXForHour(hour: number) {
+  const chartWidth = TIME_COMPARE.width - TIME_COMPARE.left - TIME_COMPARE.right;
+  return TIME_COMPARE.left + (hour / 23) * chartWidth;
+}
+
+function timeCompareYForRatio(ratio: number) {
+  const chartHeight = TIME_COMPARE.bottom - TIME_COMPARE.top;
+  return TIME_COMPARE.bottom - ratio * chartHeight;
+}
+
 function durationFormatCount(value: number) {
   return numberFormatter.format(value);
 }
@@ -1902,7 +2048,72 @@ function TimePatternArticle({ isActivated }: { isActivated: boolean }) {
             <span>按天数归一化后，工作日早晚高峰更尖锐；周末从午后到夜间延展更长。</span>
           </div>
           <svg className="insight-time-mini-chart" viewBox={`0 0 ${TIME_COMPARE.width} ${TIME_COMPARE.height}`} aria-hidden="true">
-            <path className="insight-time-mini-grid" data-time-chrome="true" d={`M ${TIME_COMPARE.left} ${TIME_COMPARE.bottom} H ${TIME_COMPARE.width - TIME_COMPARE.right}`} />
+            <g className="insight-time-mini-grid" data-time-chrome="true">
+              {[0.25, 0.5, 0.75].map((ratio) => {
+                const y = timeCompareYForRatio(ratio);
+                return (
+                  <line
+                    key={`y-${ratio}`}
+                    x1={TIME_COMPARE.left}
+                    x2={TIME_COMPARE.width - TIME_COMPARE.right}
+                    y1={y}
+                    y2={y}
+                  />
+                );
+              })}
+              {timeCompareHourTicks.slice(1, -1).map((hour) => {
+                const x = timeCompareXForHour(hour);
+                return (
+                  <line
+                    key={`x-${hour}`}
+                    x1={x}
+                    x2={x}
+                    y1={TIME_COMPARE.top}
+                    y2={TIME_COMPARE.bottom}
+                  />
+                );
+              })}
+            </g>
+            <line
+              className="insight-time-mini-axis insight-time-mini-axis--y"
+              data-time-chrome="true"
+              x1={TIME_COMPARE.left}
+              x2={TIME_COMPARE.left}
+              y1={TIME_COMPARE.top}
+              y2={TIME_COMPARE.bottom}
+            />
+            <line
+              className="insight-time-mini-axis insight-time-mini-axis--x"
+              data-time-chrome="true"
+              x1={TIME_COMPARE.left}
+              x2={TIME_COMPARE.width - TIME_COMPARE.right}
+              y1={TIME_COMPARE.bottom}
+              y2={TIME_COMPARE.bottom}
+            />
+            <g className="insight-time-mini-ticks" data-time-chrome="true">
+              {[0, 0.5, 1].map((ratio) => {
+                const y = timeCompareYForRatio(ratio);
+                return (
+                  <g key={`y-tick-${ratio}`}>
+                    <line x1={TIME_COMPARE.left - 6} x2={TIME_COMPARE.left} y1={y} y2={y} />
+                    <text x={TIME_COMPARE.left - 11} y={y + 4} textAnchor="end">
+                      {ratio === 1 ? "高" : ratio === 0.5 ? "中" : "低"}
+                    </text>
+                  </g>
+                );
+              })}
+              {timeCompareHourTicks.map((hour) => {
+                const x = timeCompareXForHour(hour);
+                return (
+                  <g key={`x-tick-${hour}`}>
+                    <line x1={x} x2={x} y1={TIME_COMPARE.bottom} y2={TIME_COMPARE.bottom + 6} />
+                    <text x={x} y={TIME_COMPARE.bottom + 20} textAnchor="middle">
+                      {String(hour).padStart(2, "0")}
+                    </text>
+                  </g>
+                );
+              })}
+            </g>
             <path className="insight-time-mini-line insight-time-mini-line--weekday" data-time-chrome="true" d={compareLinePath("weekday")} />
             <path className="insight-time-mini-line insight-time-mini-line--weekend" data-time-chrome="true" d={compareLinePath("weekend")} />
           </svg>
@@ -3761,6 +3972,227 @@ function CleanLabArticle({ isActivated }: { isActivated: boolean }) {
   );
 }
 
+function MemberLineIcon({ type }: { type: MemberIconType }) {
+  if (type === "document") {
+    return (
+      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
+        <path data-member-line="true" pathLength={1} d="M24 16h31l17 17v47H24z" />
+        <path data-member-line="true" pathLength={1} d="M55 16v18h17" />
+        <path data-member-line="true" pathLength={1} d="M34 46h28M34 56h24M34 66h18" />
+        <path data-member-line="true" pathLength={1} d="M72 76h10M77 39v24" />
+        <path data-member-line="true" pathLength={1} d="M70 48c0-5 3-9 7-9s7 4 7 9v6c0 5-3 9-7 9s-7-4-7-9z" />
+      </svg>
+    );
+  }
+
+  if (type === "mining") {
+    return (
+      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
+        <path data-member-line="true" pathLength={1} d="M48 15a33 33 0 1 0 0 66 33 33 0 0 0 0-66z" />
+        <path data-member-line="true" pathLength={1} d="M38 58l8-20 20-8-8 20z" />
+        <path data-member-line="true" pathLength={1} d="M28 72l11-14M67 38l11-14" />
+        <path data-member-line="true" pathLength={1} d="M25 31h14M57 70h15" />
+        <path data-member-line="true" pathLength={1} d="M26 31a4 4 0 1 0 0 .1M72 70a4 4 0 1 0 0 .1M78 24a4 4 0 1 0 0 .1" />
+      </svg>
+    );
+  }
+
+  if (type === "frontend") {
+    return (
+      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
+        <path data-member-line="true" pathLength={1} d="M16 20h64v52H16z" />
+        <path data-member-line="true" pathLength={1} d="M16 34h64" />
+        <path data-member-line="true" pathLength={1} d="M26 27h2M35 27h2M44 27h2" />
+        <path data-member-line="true" pathLength={1} d="M36 48l-10 8 10 8M60 48l10 8-10 8" />
+        <path data-member-line="true" pathLength={1} d="M52 45l-8 22" />
+        <path data-member-line="true" pathLength={1} d="M26 80h44M42 72v8M54 72v8" />
+      </svg>
+    );
+  }
+
+  if (type === "slides-polish") {
+    return (
+      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
+        <path data-member-line="true" pathLength={1} d="M18 18h60v44H18z" />
+        <path data-member-line="true" pathLength={1} d="M30 32h24M30 42h36M30 52h20" />
+        <path data-member-line="true" pathLength={1} d="M28 72h40" />
+        <path data-member-line="true" pathLength={1} d="M48 62v10" />
+        <path data-member-line="true" pathLength={1} d="M70 24l7-7M74 32l10-2M64 20l2-9" />
+        <path data-member-line="true" pathLength={1} d="M72 47l-10 10 4 4 10-10z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
+      <path data-member-line="true" pathLength={1} d="M22 24h48v34H22z" />
+      <path data-member-line="true" pathLength={1} d="M28 18h48v34" />
+      <path data-member-line="true" pathLength={1} d="M34 32h22M34 42h26M34 52h18" />
+      <path data-member-line="true" pathLength={1} d="M28 70h40M48 58v12" />
+      <path data-member-line="true" pathLength={1} d="M65 67l7 7 15-18" />
+      <path data-member-line="true" pathLength={1} d="M68 76h18" />
+    </svg>
+  );
+}
+
+function MembersArticle({ isActivated }: { isActivated: boolean }) {
+  return (
+    <InsightNewsShell slug="insight-07" label="成员介绍">
+      <section className="insight-members-shell" data-members-activated={isActivated ? "true" : "false"} aria-label="项目成员介绍">
+        <div className="insight-members-list">
+          {memberProfiles.map((member, index) => (
+            <article key={member.name} className="insight-member-row">
+              <div className="insight-member-role" aria-label={`${member.roleLead} / ${member.roleTrail}`}>
+                <span className="insight-member-role-lead">{member.roleLead}</span>
+                <span className="insight-member-role-slash" aria-hidden="true" />
+                <span className="insight-member-role-trail">{member.roleTrail}</span>
+              </div>
+              <h2 className="insight-member-name">{member.name}</h2>
+              <p className="insight-member-description">{member.description}</p>
+              <div className="insight-member-mark">
+                <MemberLineIcon type={member.icon} />
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </InsightNewsShell>
+  );
+}
+
+function ConclusionOutlookIcon({ type }: { type: OutlookIconType }) {
+  return (
+    <svg className="insight-conclusion-outlook-icon" viewBox="0 0 64 64" aria-hidden="true">
+      {type === "idea" ? (
+        <>
+          <path data-outlook-line="true" pathLength={1} d="M32 9c-9 0-16 6.7-16 15.3 0 5.4 2.6 9 6.1 12.4 2.1 2.1 3 4.3 3 7.3h13.8c0-3 0.9-5.2 3-7.3C45.4 33.3 48 29.7 48 24.3 48 15.7 41 9 32 9Z" />
+          <path data-outlook-line="true" pathLength={1} d="M25 50h14M27 56h10M31 18l-4 8h8l-3 9" />
+        </>
+      ) : null}
+      {type === "algorithm" ? (
+        <>
+          <circle data-outlook-line="true" pathLength={1} cx="18" cy="20" r="6" />
+          <circle data-outlook-line="true" pathLength={1} cx="46" cy="20" r="6" />
+          <circle data-outlook-line="true" pathLength={1} cx="32" cy="44" r="8" />
+          <path data-outlook-line="true" pathLength={1} d="M24 22h16M21 25l7 12M43 25l-7 12M24 48h-8v-8M40 48h8v-8" />
+        </>
+      ) : null}
+      {type === "platform" ? (
+        <>
+          <path data-outlook-line="true" pathLength={1} d="M12 15h40v31H12zM12 25h40M20 20h2M27 20h2M34 20h2" />
+          <path data-outlook-line="true" pathLength={1} d="M20 34h10M20 40h16M40 34h6M40 40h6M26 46v7M38 46v7M22 53h20" />
+        </>
+      ) : null}
+      {type === "system" ? (
+        <>
+          <path data-outlook-line="true" pathLength={1} d="M17 17c0-4 30-4 30 0v30c0 4-30 4-30 0z" />
+          <path data-outlook-line="true" pathLength={1} d="M17 17c0 4 30 4 30 0M17 27c0 4 30 4 30 0M17 37c0 4 30 4 30 0" />
+          <path data-outlook-line="true" pathLength={1} d="M12 48a24 24 0 0 0 40 0M52 48h-8v8" />
+        </>
+      ) : null}
+    </svg>
+  );
+}
+
+function ConclusionOutlookArticle({ isActivated }: { isActivated: boolean }) {
+  const findingPanel = conclusionPanels[0];
+  let donutOffset = 0;
+  const donutSegments = conclusionDonutSegments.map((segment) => {
+    const offset = donutOffset;
+    donutOffset += segment.value;
+    return { ...segment, offset };
+  });
+
+  return (
+    <InsightNewsShell slug="insight-08" label="结论展望">
+      <section className="insight-conclusion-shell" data-conclusion-activated={isActivated ? "true" : "false"} aria-label="结论、局限与展望">
+        <section className="insight-conclusion-summary" aria-labelledby="insight-conclusion-summary-title">
+          <div className="insight-conclusion-section-head">
+            <span>总结</span>
+            <h2 id="insight-conclusion-summary-title">{findingPanel.title}</h2>
+          </div>
+          <div className="insight-conclusion-visual">
+            <svg className="insight-conclusion-donut" viewBox="0 0 160 160" role="img" aria-label="骑行时长分布环形图">
+              <circle className="insight-conclusion-donut-track" cx="80" cy="80" r="54" pathLength={100} />
+              <g transform="rotate(-90 80 80)">
+                {donutSegments.map((segment) => (
+                  <circle
+                    key={segment.label}
+                    className="insight-conclusion-donut-segment"
+                    cx="80"
+                    cy="80"
+                    r="54"
+                    pathLength={100}
+                    stroke={segment.color}
+                    strokeDasharray={`${segment.value} ${100 - segment.value}`}
+                    strokeDashoffset={-segment.offset}
+                  />
+                ))}
+              </g>
+              <circle className="insight-conclusion-donut-core" cx="80" cy="80" r="35" />
+              <text className="insight-conclusion-donut-value" x="80" y="76" textAnchor="middle">
+                63.7%
+              </text>
+              <text className="insight-conclusion-donut-caption" x="80" y="94" textAnchor="middle">
+                5~20分钟
+              </text>
+            </svg>
+            <div className="insight-conclusion-legend" aria-label="骑行时长占比">
+              {conclusionDonutSegments.map((segment) => (
+                <div key={segment.label} className="insight-conclusion-legend-item">
+                  <span style={{ backgroundColor: segment.color }} aria-hidden="true" />
+                  <strong>{segment.label}</strong>
+                  <em>{segment.value.toFixed(1)}%</em>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="insight-conclusion-metrics" aria-label="核心结论数字">
+            {conclusionMetrics.map((metric) => (
+              <article key={`${metric.value}-${metric.label}`} className="insight-conclusion-metric">
+                <strong>{metric.value}</strong>
+                <span>{metric.label}</span>
+                <p>{metric.note}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="insight-conclusion-limits" aria-labelledby="insight-conclusion-limits-title">
+          <div className="insight-conclusion-section-head">
+            <span>不足</span>
+            <h2 id="insight-conclusion-limits-title">模型边界</h2>
+          </div>
+          <div className="insight-conclusion-limit-grid">
+            {limitationItems.map((item) => (
+              <article key={item.title} className="insight-conclusion-limit-item">
+                <h3>{item.title}</h3>
+                <strong>{item.summary}</strong>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="insight-conclusion-outlook" aria-labelledby="insight-conclusion-outlook-title">
+          <div className="insight-conclusion-section-head">
+            <span>展望</span>
+            <h2 id="insight-conclusion-outlook-title">后续推进</h2>
+          </div>
+          <div className="insight-conclusion-outlook-grid">
+            {outlookTiles.map((tile) => (
+              <div key={tile.label} className="insight-conclusion-outlook-tile">
+                <ConclusionOutlookIcon type={tile.icon} />
+                <span>{tile.label}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+    </InsightNewsShell>
+  );
+}
+
 function PlaceholderArticle({ slug }: { slug: InsightSlug }) {
   const title = INSIGHT_TITLES[slug];
 
@@ -3802,6 +4234,14 @@ export function InsightArticleContent({ slug, isActivated = true }: { slug: Insi
 
   if (slug === "insight-06") {
     return <FlowDirectionArticle isActivated={isActivated} />;
+  }
+
+  if (slug === "insight-07") {
+    return <MembersArticle isActivated={isActivated} />;
+  }
+
+  if (slug === "insight-08") {
+    return <ConclusionOutlookArticle isActivated={isActivated} />;
   }
 
   return <PlaceholderArticle slug={slug} />;

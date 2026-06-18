@@ -63,7 +63,7 @@ const PANEL_LABELS: Record<Exclude<PanelKey, "centerCore">, PanelLabelConfig> = 
     textColor: "#fcafa6",
   },
   typography: {
-    title: "区域画像",
+    title: "成员介绍",
     orientation: "horizontal",
     textColor: "#480118",
     accent: "large",
