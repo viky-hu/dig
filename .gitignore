@@ -1,8 +1,93 @@
+# Dependencies
 node_modules/
-.turbo/
+.pnp
+.pnp.*
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Next.js
 .next/
+out/
+next-env.d.ts
+
+# Turborepo
+.turbo/
+
+# Build outputs and caches
 dist/
 build/
+coverage/
+htmlcov/
+.nyc_output/
+.coverage
+.coverage.*
+.eslintcache
+.stylelintcache
+.npm/
+.pnpm-store/
 *.tsbuildinfo
-.env.local
-.env.*.local
+*.pem
+
+# Python analysis caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.tox/
+.nox/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+__pypackages__/
+
+# Deployment
+.vercel/
+
+# Editor and OS files
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries/
+.idea/**/shelf/
+.idea/**/aws.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/**/httpRequests/
+.idea/httpRequests/
+http-client.private.env.json
+*.iws
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.DS_Store
+Thumbs.db
+Desktop.ini
