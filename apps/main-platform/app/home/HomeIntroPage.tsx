@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent } from "react";
+import { useGSAP } from "@gsap/react";
 import { gsap } from "gsap";
+import { HomePanelArtwork } from "./HomePanelArtwork";
+import type { ArtworkPanelKey } from "./artwork/types";
 import { INSIGHTS, type InsightSlug } from "../insights/config";
 import { useInsightTransition } from "../insights/InsightTransitionProvider";
 import {
@@ -11,6 +14,8 @@ import {
   BRAND_BLUE,
   GRID_LINE_COLOR,
   MOBILE_BREAKPOINT,
+  PANEL_HOVER_COLORS,
+  PANEL_TEXT_COLORS,
   SCROLL_SHELL_VH,
 } from "./shared/coords";
 import { LINE_DRAW_EASE, LOGO_DRAW_EASE } from "./shared/animation";
@@ -27,7 +32,6 @@ import {
 type PanelLabelConfig = {
   title: string;
   orientation: "horizontal" | "vertical";
-  textColor: string;
   accent?: "large";
 };
 
@@ -35,48 +39,40 @@ const PANEL_LABELS: Record<Exclude<PanelKey, "centerCore">, PanelLabelConfig> = 
   framework: {
     title: "项目总览",
     orientation: "vertical",
-    textColor: "#b6c8e1",
   },
   iconography: {
     title: "数据清洗",
     orientation: "horizontal",
-    textColor: "#1b5641",
   },
   voiceTone: {
     title: "时间规律",
     orientation: "horizontal",
-    textColor: "#664509",
   },
   color: {
     title: "骑行时长",
     orientation: "horizontal",
-    textColor: "#6b2e0c",
   },
   logo: {
     title: "空间热点",
     orientation: "horizontal",
-    textColor: "#155463",
   },
   imagery: {
     title: "流向分析",
     orientation: "horizontal",
-    textColor: "#fcafa6",
   },
   typography: {
     title: "成员介绍",
     orientation: "horizontal",
-    textColor: "#480118",
     accent: "large",
   },
   motion: {
     title: "结论展望",
     orientation: "horizontal",
-    textColor: "#682660",
   },
 };
 
 export function HomeIntroPage() {
-  const { openFromHome, registerCenter, registerPanel, registerRestoreHomeFinal } = useInsightTransition();
+  const { openFromHome, registerCenter, registerPanel, registerRestoreHomeFinal, phase } = useInsightTransition();
   const shellRef = useRef<HTMLDivElement>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
@@ -85,6 +81,8 @@ export function HomeIntroPage() {
   const introCopyRef = useRef<HTMLDivElement>(null);
   const hintRef = useRef<HTMLDivElement>(null);
   const bikeRef = useRef<SVGSVGElement>(null);
+  const [hoveredPanel, setHoveredPanel] = useState<ArtworkPanelKey | null>(null);
+  const [focusedPanel, setFocusedPanel] = useState<ArtworkPanelKey | null>(null);
 
   const [viewportSize, setViewportSize] = useState({
     width: BASE_VW,
@@ -105,6 +103,19 @@ export function HomeIntroPage() {
   }, []);
 
   const isDesktop = viewportSize.width >= MOBILE_BREAKPOINT;
+  const artworkSuspended = phase !== "closed";
+
+  useGSAP(() => {
+    if (artworkSuspended || !isDesktop) {
+      setHoveredPanel(null);
+      setFocusedPanel(null);
+      return;
+    }
+    const panels = Array.from(worldRef.current?.querySelectorAll<HTMLElement>("[data-openable='true']") ?? []);
+    setHoveredPanel((panels.find((panel) => panel.matches(":hover"))?.dataset.panel as ArtworkPanelKey) ?? null);
+    setFocusedPanel((panels.find((panel) => panel.matches(":focus-visible"))?.dataset.panel as ArtworkPanelKey) ?? null);
+  }, { dependencies: [artworkSuspended, isDesktop], scope: worldRef });
+
   const geometry = useMemo(
     () => computeSceneGeometry(viewportSize.width, viewportSize.height),
     [viewportSize.height, viewportSize.width],
@@ -428,7 +439,13 @@ export function HomeIntroPage() {
   };
 
   return (
-    <main className={isDesktop ? "home-scroll-page" : "home-static-page"}>
+    <main
+      className={isDesktop ? "home-scroll-page" : "home-static-page"}
+      style={{
+        "--home-panel-hover-background": PANEL_HOVER_COLORS.background,
+        "--home-panel-hover-foreground": PANEL_HOVER_COLORS.foreground,
+      } as CSSProperties}
+    >
       <div
         ref={shellRef}
         className="home-scroll-shell"
@@ -527,24 +544,39 @@ export function HomeIntroPage() {
                   className="home-grid-panel"
                   style={{
                     ...rectToStyle(panel.rect),
-                    backgroundColor: panel.color,
+                    "--home-panel-background": panel.color,
+                    "--home-panel-foreground": PANEL_TEXT_COLORS[panelKey],
+                    backgroundColor: "var(--home-panel-paper)",
                     opacity: 1,
-                  }}
+                  } as CSSProperties}
                   role={meta.slug ? "button" : undefined}
                   tabIndex={meta.slug ? 0 : -1}
                   aria-label={meta.slug ? `打开${meta.label.title}模块` : meta.label.title}
                   onClick={() => handleOpen(meta.slug)}
                   onKeyDown={(event) => handleKeyDown(event, meta.slug)}
+                  onPointerEnter={(event) => {
+                    if (event.pointerType !== "touch" && isDesktop) setHoveredPanel(panelKey);
+                  }}
+                  onPointerLeave={() => setHoveredPanel((current) => current === panelKey ? null : current)}
+                  onFocus={(event) => {
+                    if (event.currentTarget.matches(":focus-visible")) setFocusedPanel(panelKey);
+                  }}
+                  onBlur={() => setFocusedPanel((current) => current === panelKey ? null : current)}
                 >
                   <h2
                     className={`home-panel-title home-panel-title--${meta.label.orientation}${
                       meta.label.accent === "large" ? " home-panel-title--large" : ""
                     }`}
-                    style={{ color: meta.label.textColor }}
                     aria-label={meta.label.title}
                   >
                     {renderPanelTitle(meta.label, isDesktop)}
                   </h2>
+                  <HomePanelArtwork
+                    panelKey={panelKey}
+                    active={hoveredPanel === panelKey || focusedPanel === panelKey}
+                    keyboardFocused={focusedPanel === panelKey}
+                    suspended={artworkSuspended}
+                  />
                 </section>
               );
             })}

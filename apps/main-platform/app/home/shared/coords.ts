@@ -32,3 +32,19 @@ export const PANEL_COLORS = {
   typography: "#FF4B22",
   motion: "#C9A9EB",
 } as const;
+
+export const PANEL_TEXT_COLORS = {
+  framework: "#B6C8E1",
+  iconography: "#1B5641",
+  voiceTone: "#664509",
+  color: "#6B2E0C",
+  logo: "#155463",
+  imagery: "#FCAFA6",
+  typography: "#480118",
+  motion: "#682660",
+} as const;
+
+export const PANEL_HOVER_COLORS = {
+  background: "#1E1919",
+  foreground: "#FFFFFF",
+} as const;
