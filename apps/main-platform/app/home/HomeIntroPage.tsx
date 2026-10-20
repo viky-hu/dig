@@ -23,6 +23,7 @@ import {
   bikePathData,
   computeSceneGeometry,
   getGuideLines,
+  getIntroCopy,
   interpolateTracks,
   rectToStyle,
   syncGridFrame,
@@ -380,11 +381,7 @@ export function HomeIntroPage() {
   }, [geometry, isDesktop, registerRestoreHomeFinal]);
 
   const guideLines = getGuideLines(geometry.initialTracks, geometry.viewportWidth, geometry.viewportHeight);
-  const introCopy = {
-    title: "上海摩拜单车",
-    subtitle: "数据挖掘分析报告",
-    hint: "↓↓",
-  };
+  const introCopy = getIntroCopy();
   const bikeWidth = Math.max(geometry.centerCoreRect.width, geometry.initialCenterRect.width);
   const bikeHeight = Math.max(geometry.centerCoreRect.height, geometry.initialCenterRect.height);
   const bike = bikePathData(bikeWidth, bikeHeight);

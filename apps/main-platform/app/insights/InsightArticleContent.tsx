@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
-import { RotateCcw } from "lucide-react";
+import { BrainCircuit, Clapperboard, CodeXml, FileText, Presentation, RotateCcw } from "lucide-react";
 import { CleaningLab } from "./cleaning/CleaningLab";
 import { LOGO_DRAW_EASE } from "../home/shared/animation";
 import { bikePathData } from "../home/utils";
 import type { InsightSlug } from "./config";
 import { SHANGHAI_GEO_BOUNDS, SHANGHAI_MAP_VIEWBOX, shanghaiMapRegions } from "./shanghaiMapData";
+import { createFlowRibbon, FLOW_NODE_RING_SCALE } from "./flowGeometry";
 
 const INSIGHT_TITLES: Record<InsightSlug, string> = {
   "insight-01": "项目总览",
@@ -22,7 +23,15 @@ const INSIGHT_TITLES: Record<InsightSlug, string> = {
 
 const numberFormatter = new Intl.NumberFormat("en-US");
 
-type MemberIconType = "document" | "mining" | "frontend" | "slides-polish" | "slides-review";
+const memberIcons = {
+  development: CodeXml,
+  mining: BrainCircuit,
+  document: FileText,
+  video: Clapperboard,
+  presentation: Presentation,
+} as const;
+
+type MemberIconType = keyof typeof memberIcons;
 
 type MemberProfile = {
   name: string;
@@ -34,44 +43,44 @@ type MemberProfile = {
 
 const memberProfiles = [
   {
-    name: "王海涛",
-    roleLead: "论文文档",
-    roleTrail: "讲解答辩",
+    name: "胡继天",
+    roleLead: "项目负责",
+    roleTrail: "系统开发",
     description:
-      "负责项目论文与报告文档的撰写、内容整合，并承担最终讲解与答辩展示任务，确保研究过程、分析结论和展示表达能够完整衔接。",
-    icon: "document",
+      "担任“骑迹上海”项目负责人，统筹作品整体规划与技术实现，独立完成可视化展示平台的设计与开发。围绕上海摩拜共享单车的动态规律，完成页面架构、图表呈现、交互逻辑与动画设计，并持续打磨各模块的衔接与展示细节，将分析成果转化为完整、直观的交互作品。",
+    icon: "development",
   },
   {
     name: "陈书扬",
-    roleLead: "选题规划",
-    roleTrail: "数据挖掘",
+    roleLead: "选题策划",
+    roleTrail: "算法挖掘",
     description:
-      "参与确定项目选题与主题方向，负责演示文稿前期内容框架与初版制作，并完成上海摩拜单车数据挖掘流程与结果整理，为后续展示提供数据基础。",
+      "深度参与作品选题与研究方向讨论，为分析主题的确立提供重要思路，并承担数据挖掘算法相关工作。围绕骑行数据中的时间变化与空间特征开展分析，为平台呈现城市骑行规律提供算法支持与内容依据。",
     icon: "mining",
   },
   {
-    name: "胡继天",
-    roleLead: "演示网页",
-    roleTrail: "前端实现",
+    name: "步嘉城",
+    roleLead: "作品文档",
+    roleTrail: "内容梳理",
     description:
-      "基于数据挖掘结果完成项目演示网页的前端实现，负责页面结构、视觉呈现与交互动效搭建；本展示页以本地数据和前端渲染为主，不涉及后端接口对接。",
-    icon: "frontend",
+      "负责参赛作品介绍文档的撰写，围绕选题背景、创作思路、分析内容与展示特色组织文字。梳理各模块之间的逻辑关系，提炼作品的核心表达，使评审能够通过文档清晰了解平台的设计意图与主要成果。",
+    icon: "document",
   },
   {
-    name: "喻圣文",
-    roleLead: "PPT 后期",
-    roleTrail: "深度加工",
+    name: "罗杰斯",
+    roleLead: "演示录制",
+    roleTrail: "视频剪辑",
     description:
-      "接手演示文稿后期深度加工，围绕内容逻辑、视觉层次和表达节奏进行打磨优化，提升汇报材料的完整度与展示效果。",
-    icon: "slides-polish",
+      "负责参赛作品演示视频的录制与剪辑，围绕平台操作流程和核心分析内容安排展示顺序。通过画面筛选、片段衔接与节奏调整，突出交互过程和可视化特色，让观众在有限时间内理解作品的主要内容。",
+    icon: "video",
   },
   {
-    name: "王潘毅",
-    roleLead: "PPT 优化",
-    roleTrail: "协同完善",
+    name: "管钧琦",
+    roleLead: "汇报演示",
+    roleTrail: "PPT制作",
     description:
-      "参与演示文稿后期深化与优化，协同完善版式细节、内容呈现和汇报节奏，保障最终展示材料的一致性与完成度。",
-    icon: "slides-review",
+      "负责参赛作品介绍 PPT 的制作，将作品背景、研究思路、分析结果与平台特色整理为清晰的汇报结构。围绕信息层级、页面版式与图文配合完善表达，为作品介绍和评审展示提供连贯、易读的演示材料。",
+    icon: "presentation",
   },
 ] as const satisfies readonly MemberProfile[];
 
@@ -101,7 +110,7 @@ const conclusionPanels = [
     type: "limit",
     label: "不足",
     title: "样本与模型仍然压缩了现实",
-    lead: "当前分析足以支撑期末展示，但仍主要依赖 2016 年 8 月订单与起终点坐标，尚未引入影响出行选择的外部变量。",
+    lead: "当前分析足以支撑期末展示，但仍主要依赖 8 月骑行样本与起终点坐标，尚未引入影响出行选择的外部变量。",
     points: [
       "未引入天气、节假日、地铁站点等外部因素，解释范围集中在订单自身特征。",
       "KMeans 需要预设 K 值，肘部法则只能辅助判断，仍存在一定主观性。",
@@ -636,17 +645,6 @@ type FlowRegion = FlowRegionSeed & {
   nodeRadius: number;
 };
 
-type FlowPoint = {
-  x: number;
-  y: number;
-};
-
-type FlowCurve = {
-  start: FlowPoint;
-  control: FlowPoint;
-  end: FlowPoint;
-};
-
 type FlowEdge = {
   id: string;
   from: FlowRegionId;
@@ -658,8 +656,8 @@ type FlowEdge = {
   rank: number;
   path: string;
   taperedArrowPath: string;
-  gradientStart: FlowPoint;
-  gradientEnd: FlowPoint;
+  gradientStart: { x: number; y: number };
+  gradientEnd: { x: number; y: number };
   strength: number;
 };
 
@@ -797,102 +795,6 @@ function flowEdgeId(from: FlowRegionId, to: FlowRegionId) {
   return `${from}-${to}`;
 }
 
-function createFlowCurve(fromRegion: FlowRegion, toRegion: FlowRegion): FlowCurve {
-  const dx = toRegion.point.x - fromRegion.point.x;
-  const dy = toRegion.point.y - fromRegion.point.y;
-  const distance = Math.hypot(dx, dy) || 1;
-  const unitX = dx / distance;
-  const unitY = dy / distance;
-  const normalX = -unitY;
-  const normalY = unitX;
-  const pairSign = fromRegion.regionNo < toRegion.regionNo ? 1 : -1;
-  const bend = (28 + ((fromRegion.regionNo + toRegion.regionNo) % 4) * 7 + Math.min(distance * 0.04, 24)) * flowSymbolScale * pairSign;
-  const startX = fromRegion.point.x + unitX * (fromRegion.nodeRadius + 5 * flowSymbolScale);
-  const startY = fromRegion.point.y + unitY * (fromRegion.nodeRadius + 5 * flowSymbolScale);
-  const endX = toRegion.point.x - unitX * (toRegion.nodeRadius + 10 * flowSymbolScale);
-  const endY = toRegion.point.y - unitY * (toRegion.nodeRadius + 10 * flowSymbolScale);
-  const controlX = (startX + endX) / 2 + normalX * bend;
-  const controlY = (startY + endY) / 2 + normalY * bend;
-
-  return {
-    start: { x: startX, y: startY },
-    control: { x: controlX, y: controlY },
-    end: { x: endX, y: endY },
-  };
-}
-
-function flowCurveToPath(curve: FlowCurve) {
-  return `M ${curve.start.x.toFixed(2)} ${curve.start.y.toFixed(2)} Q ${curve.control.x.toFixed(2)} ${curve.control.y.toFixed(2)} ${curve.end.x.toFixed(2)} ${curve.end.y.toFixed(2)}`;
-}
-
-function flowCurvePoint(curve: FlowCurve, t: number): FlowPoint {
-  const inv = 1 - t;
-  return {
-    x: inv * inv * curve.start.x + 2 * inv * t * curve.control.x + t * t * curve.end.x,
-    y: inv * inv * curve.start.y + 2 * inv * t * curve.control.y + t * t * curve.end.y,
-  };
-}
-
-function flowCurveNormal(curve: FlowCurve, t: number): FlowPoint {
-  const dx = 2 * (1 - t) * (curve.control.x - curve.start.x) + 2 * t * (curve.end.x - curve.control.x);
-  const dy = 2 * (1 - t) * (curve.control.y - curve.start.y) + 2 * t * (curve.end.y - curve.control.y);
-  const length = Math.hypot(dx, dy) || 1;
-
-  return { x: -dy / length, y: dx / length };
-}
-
-function flowCurveTangent(curve: FlowCurve, t: number): FlowPoint {
-  const dx = 2 * (1 - t) * (curve.control.x - curve.start.x) + 2 * t * (curve.end.x - curve.control.x);
-  const dy = 2 * (1 - t) * (curve.control.y - curve.start.y) + 2 * t * (curve.end.y - curve.control.y);
-  const length = Math.hypot(dx, dy) || 1;
-
-  return { x: dx / length, y: dy / length };
-}
-
-function createFlowTaperedArrowPath(curve: FlowCurve, strength: number) {
-  const samples = [0.018, 0.055, 0.11, 0.19, 0.3, 0.43, 0.58, 0.72, 0.84, 0.925, 0.972];
-  const tailWidth = (38 + strength * 30) * flowSymbolScale;
-  const tipWidth = (2.8 + strength * 2.8) * flowSymbolScale;
-  const left: FlowPoint[] = [];
-  const right: FlowPoint[] = [];
-
-  samples.forEach((t, index) => {
-    const progress = index / (samples.length - 1);
-    const point = flowCurvePoint(curve, t);
-    const normal = flowCurveNormal(curve, t);
-    const eased = 1 - Math.pow(1 - progress, 1.55);
-    const tailBloom = Math.max(0, 1 - progress / 0.22) * (6 + strength * 9) * flowSymbolScale;
-    const width = tailWidth + (tipWidth - tailWidth) * eased + tailBloom;
-
-    left.push({ x: point.x + normal.x * width * 0.5, y: point.y + normal.y * width * 0.5 });
-    right.push({ x: point.x - normal.x * width * 0.5, y: point.y - normal.y * width * 0.5 });
-  });
-
-  const tip = curve.end;
-  const tailCenter = flowCurvePoint(curve, samples[0]);
-  const tailTangent = flowCurveTangent(curve, samples[0]);
-  const capControl = {
-    x: tailCenter.x - tailTangent.x * tailWidth * 0.28,
-    y: tailCenter.y - tailTangent.y * tailWidth * 0.28,
-  };
-  const path = [`M ${left[0].x.toFixed(2)} ${left[0].y.toFixed(2)}`];
-
-  left.slice(1).forEach((point) => {
-    path.push(`L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`);
-  });
-  path.push(`L ${tip.x.toFixed(2)} ${tip.y.toFixed(2)}`);
-  right
-    .slice()
-    .reverse()
-    .forEach((point) => {
-      path.push(`L ${point.x.toFixed(2)} ${point.y.toFixed(2)}`);
-    });
-  path.push(`Q ${capControl.x.toFixed(2)} ${capControl.y.toFixed(2)} ${left[0].x.toFixed(2)} ${left[0].y.toFixed(2)}`);
-  path.push("Z");
-
-  return path.join(" ");
-}
-
 function createFlowLoopPath(region: FlowRegion) {
   const strength = Math.sqrt(region.internal / flowMaxInternalTrips);
   const radiusX = (22 + strength * 20) * flowSymbolScale;
@@ -927,7 +829,8 @@ const flowAllEdges = flowMatrix.flatMap((row, fromIndex) => {
 
     const isInternal = from === to;
     const strength = Math.sqrt(count / (isInternal ? flowMaxInternalTrips : flowMaxCrossCount));
-    const curve = isInternal ? null : createFlowCurve(fromRegion, toRegion);
+    const reverseStrength = Math.sqrt((flowMatrix[toIndex]?.[fromIndex] ?? 0) / flowMaxCrossCount);
+    const ribbon = isInternal ? null : createFlowRibbon(fromRegion, toRegion, strength, reverseStrength, flowSymbolScale);
 
     return [
       {
@@ -939,10 +842,10 @@ const flowAllEdges = flowMatrix.flatMap((row, fromIndex) => {
         count,
         percent: (count / flowTotalTrips) * 100,
         rank: 0,
-        path: curve ? flowCurveToPath(curve) : createFlowLoopPath(fromRegion),
-        taperedArrowPath: curve ? createFlowTaperedArrowPath(curve, strength) : "",
-        gradientStart: curve?.start ?? fromRegion.point,
-        gradientEnd: curve?.end ?? toRegion.point,
+        path: ribbon?.path ?? createFlowLoopPath(fromRegion),
+        taperedArrowPath: ribbon?.taperedArrowPath ?? "",
+        gradientStart: ribbon?.gradientStart ?? fromRegion.point,
+        gradientEnd: ribbon?.gradientEnd ?? toRegion.point,
         strength,
       },
     ];
@@ -1589,7 +1492,7 @@ function TimePatternArticle({ isActivated }: { isActivated: boolean }) {
                 className="insight-time-chart"
                 viewBox={`0 0 ${TIME_CHART.width} ${TIME_CHART.height}`}
                 role="img"
-                aria-label="2016 年 8 月上海摩拜单车 24 小时订单量曲线"
+                aria-label="8 月上海摩拜单车 24 小时订单量曲线"
               >
                 <defs>
                   <linearGradient id="time-area-gradient" x1="0" x2="0" y1="0" y2="1">
@@ -1711,7 +1614,7 @@ function TimePatternArticle({ isActivated }: { isActivated: boolean }) {
             <div className="insight-time-summary" data-time-panel="true">
               <p className="insight-news-section-tag">Pattern</p>
               <p>{timeModes[mode].summary}</p>
-              <span>数据窗口：2016.08.01 - 2016.08.31</span>
+              <span>数据窗口：8 月 1 日—8 月 31 日</span>
             </div>
           </aside>
         </section>
@@ -1818,7 +1721,6 @@ function DurationArticle({ isActivated }: { isActivated: boolean }) {
     const bars = Array.from(root.querySelectorAll<SVGRectElement>("[data-duration-bar]"));
     const area = root.querySelector<SVGPathElement>("[data-duration-area]");
     const areaLine = root.querySelector<SVGPathElement>("[data-duration-area-line]");
-    const panels = root.querySelectorAll<HTMLElement>("[data-duration-panel]");
     const shouldJump = immediate || reduceMotionRef.current;
 
     bars.forEach((bar, index) => {
@@ -1849,14 +1751,6 @@ function DurationArticle({ isActivated }: { isActivated: boolean }) {
         ease: "power2.out",
         overwrite: "auto",
       });
-    }
-
-    if (!shouldJump && panels.length) {
-      gsap.fromTo(
-        panels,
-        { autoAlpha: 0, y: 8 },
-        { autoAlpha: 1, y: 0, duration: 0.24, ease: "power2.out", stagger: 0.025, overwrite: "auto", immediateRender: false },
-      );
     }
   }, []);
 
@@ -1956,7 +1850,7 @@ function DurationArticle({ isActivated }: { isActivated: boolean }) {
                 className="insight-duration-chart"
                 viewBox={`0 0 ${DURATION_CHART.width} ${DURATION_CHART.height}`}
                 role="img"
-                aria-label="2016 年 8 月上海摩拜单车骑行时长分布，5 到 20 分钟占 66.49%"
+                aria-label="8 月上海摩拜单车骑行时长分布，5 到 20 分钟占 66.49%"
               >
                 <defs>
                   <linearGradient id="duration-area-gradient" x1="0" x2="0" y1="0" y2="1">
@@ -2073,7 +1967,7 @@ function DurationArticle({ isActivated }: { isActivated: boolean }) {
             <div className="insight-duration-summary" data-duration-panel="true">
               <p className="insight-news-section-tag">Pattern</p>
               <p>{durationModes[mode].summary}</p>
-              <span>数据窗口：2016.08.01 - 2016.08.31</span>
+              <span>数据窗口：8 月 1 日—8 月 31 日</span>
             </div>
           </aside>
         </section>
@@ -2681,6 +2575,25 @@ function FlowDirectionArticle({ isActivated }: { isActivated: boolean }) {
                     <stop offset="42%" stopColor="#d6a84c" stopOpacity="0.74" />
                     <stop offset="100%" stopColor="#9b6a25" stopOpacity="0" />
                   </radialGradient>
+                  <mask
+                    id="flow-node-ring-cutout"
+                    maskUnits="userSpaceOnUse"
+                    x={0}
+                    y={0}
+                    width={SHANGHAI_MAP_VIEWBOX.width}
+                    height={SHANGHAI_MAP_VIEWBOX.height}
+                  >
+                    <rect width={SHANGHAI_MAP_VIEWBOX.width} height={SHANGHAI_MAP_VIEWBOX.height} fill="white" />
+                    {flowRegions.map((region) => (
+                      <circle
+                        key={`flow-ring-cutout-${region.id}`}
+                        cx={region.point.x}
+                        cy={region.point.y}
+                        r={region.nodeRadius * FLOW_NODE_RING_SCALE}
+                        fill="black"
+                      />
+                    ))}
+                  </mask>
                   <marker
                     id="flow-loop-arrow"
                     viewBox="0 -3 7 6"
@@ -2771,20 +2684,22 @@ function FlowDirectionArticle({ isActivated }: { isActivated: boolean }) {
                     })}
                   </g>
 
-                  <g className="insight-flow-edges">
+                  <g className="insight-flow-edges" mask="url(#flow-node-ring-cutout)">
                     {flowTopCrossEdges.map((edge) => {
                       const isRelatedToRegion = selectedRegion ? edge.from === selectedRegion.id || edge.to === selectedRegion.id : false;
                       const isSelectedEdge = selectedEdge?.id === edge.id;
                       const isActive = !hasSelection || isRelatedToRegion || isSelectedEdge;
                       const isDimmed = hasSelection && !isActive;
                       const isWithinTopLimit = edge.rank <= topLimit;
+                      const isVisible = showCrossEdges && isWithinTopLimit;
 
                       return (
                         <g
                           key={edge.id}
-                          className={`insight-flow-edge${isActive ? " is-active" : ""}${isDimmed ? " is-dimmed" : ""}${showCrossEdges && isWithinTopLimit ? "" : " is-hidden"}`}
+                          className={`insight-flow-edge${isActive ? " is-active" : ""}${isDimmed ? " is-dimmed" : ""}${isVisible ? "" : " is-hidden"}`}
                           role="button"
-                          tabIndex={0}
+                          tabIndex={isVisible ? 0 : -1}
+                          aria-hidden={isVisible ? undefined : true}
                           aria-label={`R${edge.fromRegion.regionNo} 到 R${edge.toRegion.regionNo}，${formatCount(edge.count)} 单`}
                           aria-pressed={isSelectedEdge}
                           onClick={() => selectEdge(edge.id)}
@@ -2836,7 +2751,7 @@ function FlowDirectionArticle({ isActivated }: { isActivated: boolean }) {
                         >
                           <circle className="insight-flow-node-hit" cx={region.point.x} cy={region.point.y} r={region.nodeRadius + 20 * flowSymbolScale} />
                           <circle className="insight-flow-node-aura" cx={region.point.x} cy={region.point.y} r={region.nodeRadius * 2.72} />
-                          <circle className="insight-flow-node-ring" cx={region.point.x} cy={region.point.y} r={region.nodeRadius * 1.42} />
+                          <circle className="insight-flow-node-ring" cx={region.point.x} cy={region.point.y} r={region.nodeRadius * FLOW_NODE_RING_SCALE} />
                           <circle className="insight-flow-node-core" cx={region.point.x} cy={region.point.y} r={region.nodeRadius} />
                           <text className="insight-flow-node-id" x={region.point.x} y={region.point.y + 4.1 * flowSymbolScale} style={{ fontSize: `${8 * flowSymbolScale}px` }}>
                             {region.regionNo}
@@ -3028,66 +2943,8 @@ function CleanLabArticle({ isActivated }: { isActivated: boolean }) {
 }
 
 function MemberLineIcon({ type }: { type: MemberIconType }) {
-  if (type === "document") {
-    return (
-      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
-        <path data-member-line="true" pathLength={1} d="M24 16h31l17 17v47H24z" />
-        <path data-member-line="true" pathLength={1} d="M55 16v18h17" />
-        <path data-member-line="true" pathLength={1} d="M34 46h28M34 56h24M34 66h18" />
-        <path data-member-line="true" pathLength={1} d="M72 76h10M77 39v24" />
-        <path data-member-line="true" pathLength={1} d="M70 48c0-5 3-9 7-9s7 4 7 9v6c0 5-3 9-7 9s-7-4-7-9z" />
-      </svg>
-    );
-  }
-
-  if (type === "mining") {
-    return (
-      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
-        <path data-member-line="true" pathLength={1} d="M48 15a33 33 0 1 0 0 66 33 33 0 0 0 0-66z" />
-        <path data-member-line="true" pathLength={1} d="M38 58l8-20 20-8-8 20z" />
-        <path data-member-line="true" pathLength={1} d="M28 72l11-14M67 38l11-14" />
-        <path data-member-line="true" pathLength={1} d="M25 31h14M57 70h15" />
-        <path data-member-line="true" pathLength={1} d="M26 31a4 4 0 1 0 0 .1M72 70a4 4 0 1 0 0 .1M78 24a4 4 0 1 0 0 .1" />
-      </svg>
-    );
-  }
-
-  if (type === "frontend") {
-    return (
-      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
-        <path data-member-line="true" pathLength={1} d="M16 20h64v52H16z" />
-        <path data-member-line="true" pathLength={1} d="M16 34h64" />
-        <path data-member-line="true" pathLength={1} d="M26 27h2M35 27h2M44 27h2" />
-        <path data-member-line="true" pathLength={1} d="M36 48l-10 8 10 8M60 48l10 8-10 8" />
-        <path data-member-line="true" pathLength={1} d="M52 45l-8 22" />
-        <path data-member-line="true" pathLength={1} d="M26 80h44M42 72v8M54 72v8" />
-      </svg>
-    );
-  }
-
-  if (type === "slides-polish") {
-    return (
-      <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
-        <path data-member-line="true" pathLength={1} d="M18 18h60v44H18z" />
-        <path data-member-line="true" pathLength={1} d="M30 32h24M30 42h36M30 52h20" />
-        <path data-member-line="true" pathLength={1} d="M28 72h40" />
-        <path data-member-line="true" pathLength={1} d="M48 62v10" />
-        <path data-member-line="true" pathLength={1} d="M70 24l7-7M74 32l10-2M64 20l2-9" />
-        <path data-member-line="true" pathLength={1} d="M72 47l-10 10 4 4 10-10z" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg className="insight-member-icon" viewBox="0 0 96 96" aria-hidden="true">
-      <path data-member-line="true" pathLength={1} d="M22 24h48v34H22z" />
-      <path data-member-line="true" pathLength={1} d="M28 18h48v34" />
-      <path data-member-line="true" pathLength={1} d="M34 32h22M34 42h26M34 52h18" />
-      <path data-member-line="true" pathLength={1} d="M28 70h40M48 58v12" />
-      <path data-member-line="true" pathLength={1} d="M65 67l7 7 15-18" />
-      <path data-member-line="true" pathLength={1} d="M68 76h18" />
-    </svg>
-  );
+  const Icon = memberIcons[type];
+  return <Icon className="insight-member-icon" size={72} strokeWidth={1.75} aria-hidden="true" focusable="false" />;
 }
 
 function MembersArticle({ isActivated }: { isActivated: boolean }) {
@@ -3095,7 +2952,7 @@ function MembersArticle({ isActivated }: { isActivated: boolean }) {
     <InsightNewsShell slug="insight-07" label="成员介绍">
       <section className="insight-members-shell" data-members-activated={isActivated ? "true" : "false"} aria-label="项目成员介绍">
         <div className="insight-members-list">
-          {memberProfiles.map((member, index) => (
+          {memberProfiles.map((member) => (
             <article key={member.name} className="insight-member-row">
               <div className="insight-member-role" aria-label={`${member.roleLead} / ${member.roleTrail}`}>
                 <span className="insight-member-role-lead">{member.roleLead}</span>

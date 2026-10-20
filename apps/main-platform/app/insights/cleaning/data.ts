@@ -17,18 +17,18 @@ export const OUTPUT_FIELDS = [
 
 export const SAMPLE = {
   orderid: "78387", bikeid: "158357", userid: "10080",
-  start_time: "2016/8/20 6:57", end_time: "2016/8/20 7:04",
+  start_time: "8/20 6:57", end_time: "8/20 7:04",
   start_location_x: "121.348", start_location_y: "31.389",
   end_location_x: "121.357", end_location_y: "31.388",
 };
 export const SAMPLE_ROWS = [
-  ["78387", "2016/8/20 6:57", "121.348", "31.389", "7"],
-  ["891333", "2016/8/29 19:09", "121.508", "31.279", "22"],
-  ["1106623", "2016/8/13 16:17", "121.383", "31.254", "19"],
-  ["119909", "2016/8/5 8:43", "121.507", "31.258", "4725"],
+  ["78387", "8/20 6:57", "121.348", "31.389", "7"],
+  ["891333", "8/29 19:09", "121.508", "31.279", "22"],
+  ["1106623", "8/13 16:17", "121.383", "31.254", "19"],
+  ["119909", "8/5 8:43", "121.507", "31.258", "4725"],
 ] as const;
 export const FEATURES = [
-  { name: "start_date", value: "2016-08-20", label: "日期" },
+  { name: "start_date", value: "08-20", label: "日期" },
   { name: "start_hour", value: "06", label: "小时" },
   { name: "start_weekday", value: "5", label: "星期六 · 周一为 0" },
   { name: "start_is_weekend", value: "1", label: "周末" },
@@ -86,10 +86,10 @@ export const STAGES: readonly CleaningStage[] = [
     key: "time", short: "解析", title: "时间，从文字变成刻度。",
     description: "解析起止时间，让原本的字符串可以参与时间运算。",
     ready: "起止时间仍为字符串，等待 pd.to_datetime 解析",
-    result: "起止时间完成解析。出发时间覆盖 2016-08-01 00:23 至 2016-08-31 23:58。",
+    result: "起止时间完成解析。出发时间覆盖 08-01 00:23 至 08-31 23:58。",
     inputFields: 9, outputFields: 9,
     phases: [
-      { label: "解析出发时间", match: 'df["start_time"] =', note: "2016/8/20 6:57 → 2016-08-20 06:57。" },
+      { label: "解析出发时间", match: 'df["start_time"] =', note: "8/20 6:57 → 08-20 06:57。" },
       { label: "解析到达时间", match: 'df["end_time"] =', note: "字符串成为 datetime，记录数量与字段数量保持不变。" },
     ],
   },

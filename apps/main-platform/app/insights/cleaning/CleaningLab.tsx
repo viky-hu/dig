@@ -61,7 +61,7 @@ export function CleaningLab({ isActivated }: { isActivated: boolean }) {
             <p>{stage.description}</p>
           </header>
           <div className="cl-stage-canvas" key={stage.key}><CleaningScenes step={step} phase={phase} /></div>
-          <div className="cl-stage-footnote"><span>真实样本示意 · 全量统计见下方</span><span>2016.08 / 上海</span></div>
+          <div className="cl-stage-footnote"><span>真实样本示意 · 全量统计见下方</span><span>上海 / 8 月骑行样本</span></div>
         </section>
 
         <aside className="cl-code-panel" aria-label="当前步骤的真实 Python 源码">

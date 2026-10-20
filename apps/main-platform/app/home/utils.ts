@@ -525,8 +525,8 @@ function circlePath(cx: number, cy: number, r: number) {
 
 export function getIntroCopy() {
   return {
-    title: "上海摩拜单车",
-    subtitle: "数据挖掘分析报告",
+    title: "骑迹上海",
+    subtitle: "上海摩拜共享单车\n动态规律分析可视化展示平台",
     hint: "↓↓",
   };
 }

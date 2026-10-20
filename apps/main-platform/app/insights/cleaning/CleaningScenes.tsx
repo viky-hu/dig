@@ -22,7 +22,7 @@ function LoadScene() {
         <table className="cl-record-table">
           <thead><tr><th>orderid</th><th>start_time</th><th>start_location_x</th><th>end_time</th></tr></thead>
           <tbody>
-            {SAMPLE_ROWS.map((r, i) => <tr key={r[0]} data-record-row className={i === 0 ? "is-selected" : ""}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{["2016/8/20 7:04", "2016/8/29 19:31", "2016/8/13 16:36", "2016/8/8 15:28"][i]}</td></tr>)}
+            {SAMPLE_ROWS.map((r, i) => <tr key={r[0]} data-record-row className={i === 0 ? "is-selected" : ""}><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{["8/20 7:04", "8/29 19:31", "8/13 16:36", "8/8 15:28"][i]}</td></tr>)}
           </tbody>
         </table>
         <div className="cl-table-footer"><span>其余字段：bikeid、userid、起点纬度、终点经纬度</span><span>共 9 列</span></div>
@@ -59,10 +59,10 @@ function TimeScene() {
         <div className="cl-time-row" key={t.kind}>
           <div className="cl-time-input"><code>{t.field}</code><strong>{t.raw}</strong><span>原始字符串</span></div>
           <div className="cl-time-arrow"><svg viewBox="0 0 80 40" aria-hidden="true"><path data-draw d="M0 20H76M67 12L76 20L67 28" /></svg></div>
-          <div className="cl-time-output" data-reveal={`time-${t.kind}`}><span>2016-08-20</span><strong>{t.time}</strong><code>datetime</code></div>
+          <div className="cl-time-output" data-reveal={`time-${t.kind}`}><span>08-20</span><strong>{t.time}</strong><code>datetime</code></div>
         </div>
       ))}
-      <div className="cl-time-coverage" data-reveal="time-coverage"><span>出发时间覆盖</span><strong>08.01 <span>00:23</span><ArrowRight size={17} />08.31 <span>23:58</span></strong><span>2016 年 8 月</span></div>
+      <div className="cl-time-coverage" data-reveal="time-coverage"><span>出发时间覆盖</span><strong>08.01 <span>00:23</span><ArrowRight size={17} />08.31 <span>23:58</span></strong><span>8 月骑行样本</span></div>
     </div>
   );
 }
@@ -70,7 +70,7 @@ function TimeScene() {
 function FeaturesScene() {
   return (
     <div className="cl-scene cl-features-scene">
-      <div className="cl-feature-source"><RecordTag /><code>start_time</code><strong>2016-08-20 <span>06:57</span></strong></div>
+      <div className="cl-feature-source"><RecordTag /><code>start_time</code><strong>08-20 <span>06:57</span></strong></div>
       <svg className="cl-feature-branches" viewBox="0 0 660 64" preserveAspectRatio="none" aria-hidden="true">
         {[82.5,247.5,412.5,577.5].map((x,i) => <path data-feature-path={i} key={x} d={`M330 0V16Q330 28 ${x < 330 ? 318 : 342} 28H${x}V64`} />)}
       </svg>
@@ -88,7 +88,7 @@ function DurationScene() {
       <div className="cl-sample-heading"><RecordTag /><span>时长 =（到达 − 出发）÷ 60 秒</span></div>
       <div className="cl-duration-equation"><div><span>出发</span><strong>06:57</strong></div><ArrowRight className="cl-duration-arrow" size={36} strokeWidth={1} /><div><span>到达</span><strong>07:04</strong></div><span className="cl-equals">=</span><div className="cl-duration-answer" data-reveal="duration-answer"><strong>7<small>min</small></strong><code>duration_min</code></div></div>
       <div className="cl-duration-line"><svg viewBox="0 0 660 50" preserveAspectRatio="none" aria-hidden="true"><path data-draw d="M8 5V25H652V5M8 19V31M100 19V31M192 19V31M284 19V31M376 19V31M468 19V31M560 19V31M652 19V31" /></svg><div><span>0</span><span>7 分钟</span></div></div>
-      <div className="cl-duration-tail" data-reveal="duration-tail"><div><span className="cl-small-label">原始最大时长</span><strong>4,725<small>min</small></strong><RecordTag id="119909" /></div><div className="cl-tail-detail"><span>2016-08-05 08:43</span><ArrowDown size={18} /><span>2016-08-08 15:28</span><p>超长记录已被看见。<br />下一步才决定是否剔除。</p></div><div className="cl-tail-trace" aria-hidden="true"><span /><span /><span /><b>…</b></div></div>
+      <div className="cl-duration-tail" data-reveal="duration-tail"><div><span className="cl-small-label">原始最大时长</span><strong>4,725<small>min</small></strong><RecordTag id="119909" /></div><div className="cl-tail-detail"><span>08-05 08:43</span><ArrowDown size={18} /><span>08-08 15:28</span><p>超长记录已被看见。<br />下一步才决定是否剔除。</p></div><div className="cl-tail-trace" aria-hidden="true"><span /><span /><span /><b>…</b></div></div>
     </div>
   );
 }
@@ -120,7 +120,7 @@ function FilterScene({ phase }: { phase: number }) {
   return <div className="cl-scene cl-filter-scene">
     <div className="cl-rule-grid">{rules.map((r,i) => <div className={`cl-rule ${i === 1 || i === 2 ? "cl-rule--reject" : ""}`} data-active={phase === i} key={r.title}><span>0{i+1} / {r.title}</span><code>{r.condition}</code><strong data-gate-result={i}>{r.count}<small>{r.note}</small></strong></div>)}</div>
     <div className="cl-flow-diagram">
-      <svg viewBox="0 0 660 110" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <svg viewBox="0 0 660 110" preserveAspectRatio="xMidYMid meet" role="img" aria-label="原始订单过滤后保留记录，剔除 148 条超长骑行和 3 条坐标越界记录">
         <path className="cl-flow-guide" data-route="accept" d="M16 24H644" />
         <path className="cl-flow-guide cl-flow-guide--reject" data-route="long" d="M16 24H190Q212 24 212 46V70Q212 88 230 88H300" />
         <path className="cl-flow-guide cl-flow-guide--reject" data-route="coord" d="M16 24H382Q404 24 404 46V70Q404 88 422 88H482" />
@@ -128,9 +128,11 @@ function FilterScene({ phase }: { phase: number }) {
         {[0,1,2].map(i => <rect key={i} data-flow-particle="long" x="-5" y="-5" width="10" height="10" rx="1" />)}
         {[0,1,2].map(i => <rect key={i} data-flow-particle="coord" x="-5" y="-5" width="10" height="10" rx="1" />)}
         <path className="cl-flow-arrow" d="M634 17L644 24L634 31" />
+        <text className="cl-flow-start" x="16" y="10">原始订单</text>
+        <text className="cl-flow-finish" x="644" y="10" textAnchor="end">保留记录</text>
+        <g data-reveal="long-receipt"><text className="cl-flow-reject" x="265" y="105" textAnchor="middle">148 条超长</text></g>
+        <g data-reveal="coord-receipt"><text className="cl-flow-reject" x="452" y="105" textAnchor="middle">3 条越界</text></g>
       </svg>
-      <span className="cl-flow-start">原始订单</span><span className="cl-flow-finish">保留记录</span>
-      <span className="cl-flow-reject cl-flow-reject--long" data-reveal="long-receipt">148 条超长</span><span className="cl-flow-reject cl-flow-reject--coord" data-reveal="coord-receipt">3 条越界</span>
     </div>
     <div className="cl-filter-evidence"><CoordinatePlot /><div className="cl-reject-ledger" data-reveal="reject-ledger"><div className="cl-chart-label"><span>真实异常订单</span><b>终点经度</b></div>{COORD_REJECTS.map(r => <div key={r.id}><span>#{r.id}</span><strong>{r.lng.toFixed(3)}</strong><small>{r.duration} min</small></div>)}<p>三个终点落在西侧范围外。<br />负时长被第一道规则涵盖，末次复核新增剔除为 0。</p></div></div>
   </div>;

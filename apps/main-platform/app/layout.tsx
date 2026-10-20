@@ -5,8 +5,8 @@ import "./globals.css";
 import "./fonts/ding-talk-jin-bu-ti/font.css";
 
 export const metadata: Metadata = {
-  title: "DIG | 上海摩拜单车数据挖掘分析报告",
-  description: "上海摩拜单车数据挖掘分析报告。",
+  title: "骑迹上海——上海摩拜共享单车动态规律分析可视化展示平台",
+  description: "骑迹上海——上海摩拜共享单车动态规律分析可视化展示平台，以交互式可视化呈现骑行数据的时间规律、骑行时长、空间热点与区域流向。",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

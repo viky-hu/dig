@@ -279,14 +279,14 @@ body::-webkit-scrollbar {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: clamp(8px, 0.8vw, 14px);
-  padding: clamp(54px, 5.8vw, 86px) clamp(28px, 2.2vw, 38px) clamp(28px, 2.2vw, 38px);
+  gap: clamp(14px, 1.2vw, 22px);
+  padding: clamp(46px, 5vw, 74px) clamp(28px, 2.2vw, 38px) clamp(28px, 2.2vw, 38px);
   color: #ffffff;
 }
 
 .home-intro-title {
   margin: 0;
-  font-size: clamp(38px, 3.25vw, 68px);
+  font-size: clamp(34px, 4vw, 72px);
   line-height: 1.03;
   letter-spacing: 0;
   font-weight: 650;
@@ -294,10 +294,10 @@ body::-webkit-scrollbar {
 
 .home-intro-subtitle {
   margin: 0;
-  padding-left: clamp(12px, 0.8vw, 22px);
-  font-size: clamp(22px, 1.55vw, 36px);
-  line-height: 1.12;
+  font-size: clamp(14px, 1.55vw, 28px);
+  line-height: 1.5;
   letter-spacing: 0;
+  white-space: pre;
 }
 
 .home-intro-bike {
@@ -1293,6 +1293,10 @@ body::-webkit-scrollbar {
   background: transparent;
 }
 
+.insight-article[data-insight-slug="insight-07"] .insight-news-masthead {
+  font-size: clamp(22px, 1.95vw, 32px);
+}
+
 .insight-members-shell {
   --members-bg: #17110f;
   --members-row: rgba(245, 232, 210, 0.035);
@@ -1311,7 +1315,8 @@ body::-webkit-scrollbar {
   background:
     linear-gradient(90deg, rgba(223, 193, 111, 0.08), transparent 28%, rgba(243, 239, 230, 0.03)),
     var(--members-bg);
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .insight-members-shell::before {
@@ -1331,7 +1336,7 @@ body::-webkit-scrollbar {
   z-index: 1;
   min-height: 0;
   display: grid;
-  grid-template-rows: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(min-content, 1fr));
 }
 
 .insight-member-row {
@@ -1390,7 +1395,7 @@ body::-webkit-scrollbar {
   height: clamp(72px, 6.3vw, 96px);
   color: rgba(223, 193, 111, 0.9);
   font-family: var(--insight-paper-font);
-  font-size: clamp(27px, 2.1vw, 38px);
+  font-size: clamp(23px, 1.8vw, 32px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0;
@@ -1427,7 +1432,7 @@ body::-webkit-scrollbar {
   margin: 0;
   color: var(--members-text);
   font-family: var(--insight-paper-font);
-  font-size: clamp(25px, 2.2vw, 38px);
+  font-size: clamp(22px, 1.9vw, 32px);
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
@@ -1439,7 +1444,7 @@ body::-webkit-scrollbar {
   max-width: 980px;
   margin: 0;
   color: var(--members-muted);
-  font-size: clamp(15px, 1.08vw, 19px);
+  font-size: clamp(14px, 0.96vw, 17px);
   line-height: 1.66;
   letter-spacing: 0;
 }
@@ -1450,45 +1455,18 @@ body::-webkit-scrollbar {
   display: grid;
   place-items: center;
   border-left: 1px solid var(--members-line);
+  padding: 12px;
 }
 
 .insight-member-icon {
-  width: min(92px, 72%);
-  max-height: min(86px, 78%);
-  overflow: visible;
-}
-
-.insight-member-icon [data-member-line] {
-  fill: none;
-  stroke: var(--members-accent);
-  stroke-width: 2;
-  stroke-linecap: square;
-  stroke-linejoin: miter;
-  vector-effect: non-scaling-stroke;
+  display: block;
+  width: clamp(44px, 5vw, 76px);
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  aspect-ratio: 1;
+  color: var(--members-accent);
   opacity: 0.95;
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  transition: stroke-dashoffset 640ms cubic-bezier(0.19, 1, 0.22, 1);
-}
-
-.insight-members-shell[data-members-activated="true"] .insight-member-icon [data-member-line] {
-  stroke-dashoffset: 0;
-}
-
-.insight-member-row:nth-child(2) .insight-member-icon [data-member-line] {
-  transition-delay: 90ms;
-}
-
-.insight-member-row:nth-child(3) .insight-member-icon [data-member-line] {
-  transition-delay: 160ms;
-}
-
-.insight-member-row:nth-child(4) .insight-member-icon [data-member-line] {
-  transition-delay: 230ms;
-}
-
-.insight-member-row:nth-child(5) .insight-member-icon [data-member-line] {
-  transition-delay: 300ms;
 }
 
 .insight-conclusion-shell {
@@ -3706,13 +3684,13 @@ body::-webkit-scrollbar {
   pointer-events: stroke;
   stroke: transparent;
   stroke-linecap: round;
-  stroke-width: 24;
+  stroke-width: 18;
   vector-effect: non-scaling-stroke;
 }
 
 .insight-flow-edge-shape {
   opacity: 0.82;
-  pointer-events: none;
+  pointer-events: visiblePainted;
   transform-box: fill-box;
   transform-origin: center;
   transition: opacity 110ms ease;
@@ -3730,6 +3708,11 @@ body::-webkit-scrollbar {
 
 .insight-flow-edge.is-hidden {
   opacity: 0 !important;
+  pointer-events: none;
+}
+
+.insight-flow-edge.is-hidden .insight-flow-edge-hit,
+.insight-flow-edge.is-hidden .insight-flow-edge-shape {
   pointer-events: none;
 }
 
@@ -4425,7 +4408,6 @@ body::-webkit-scrollbar {
   }
 
   .insight-member-row,
-  .insight-member-icon [data-member-line],
   .insight-conclusion-summary,
   .insight-conclusion-limits,
   .insight-conclusion-outlook,
@@ -4441,7 +4423,6 @@ body::-webkit-scrollbar {
     transform: none;
   }
 
-  .insight-member-icon [data-member-line],
   .insight-conclusion-outlook-icon [data-outlook-line] {
     stroke-dashoffset: 0;
   }
