@@ -42,11 +42,11 @@ source .venv/bin/activate
 若 Windows 禁止执行激活脚本，可不激活，改用 `.\.venv\Scripts\python.exe` 替代下列每个 `python`。
 
 ```bash
-python -m pip install -r "数据挖掘-期末/requirements.txt"
-python "数据挖掘-期末/main/data-mining/data_cleaning.py"
-python "数据挖掘-期末/main/data-mining/eda_analysis.py"
-python "数据挖掘-期末/main/data-mining/clustering.py"
-python "数据挖掘-期末/main/data-mining/od_analysis.py"
+python -m pip install -r "data-analysis/requirements.txt"
+python "data-analysis/main/data-mining/data_cleaning.py"
+python "data-analysis/main/data-mining/eda_analysis.py"
+python "data-analysis/main/data-mining/clustering.py"
+python "data-analysis/main/data-mining/od_analysis.py"
 ```
 
 依赖清单限定兼容的主版本范围，没有恢复历史分析环境的精确版本。不同依赖版本可能影响聚类结果，提交材料中的统计以随附结果为准。

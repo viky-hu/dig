@@ -21,7 +21,7 @@
   K=11, inertia=94
   K=12, inertia=85
 
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\clustering_charts\elbow_method.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\clustering_charts\elbow_method.png
 
 [KMeans聚类] K=6
   聚类完成:
@@ -33,8 +33,8 @@
     簇 5: 中心 (121.464, 31.320), 订单量 15,340 (15.0%)
 
 [可视化] 绘制聚类结果
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\clustering_charts\cluster_map_k6.png
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\clustering_charts\cluster_counts_k6.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\clustering_charts\cluster_map_k6.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\clustering_charts\cluster_counts_k6.png
 
 ============================================================
   聚类结果分析
@@ -49,15 +49,15 @@
 区域 5 13743   13.4 121.4031 31.1593   0.0403
 区域 4 12269   12.0 121.3548 31.2582   0.0416
 
-  带聚类标签的数据已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\mobike_with_clusters.csv
+  带聚类标签的数据已保存: D:\311-比赛\data-analysis\main\data-mining\mobike_with_clusters.csv
 
 ============================================================
   不同 K 值聚类效果对比
 ============================================================
 
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\clustering_charts\k_comparison.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\clustering_charts\k_comparison.png
 
 ============================================================
   空间热点聚类分析完成！
-  所有图表已保存至: D:\311-比赛\数据挖掘-期末\main\data-mining\clustering_charts
+  所有图表已保存至: D:\311-比赛\data-analysis\main\data-mining\clustering_charts
 ============================================================

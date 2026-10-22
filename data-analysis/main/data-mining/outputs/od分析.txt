@@ -27,10 +27,10 @@
 9      5     3   1286    1.3
 10     2     4   1101    1.1
 
-图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\od_charts\od_heatmap.png
-图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\od_charts\od_top5.png
+图表已保存: D:\311-比赛\data-analysis\main\data-mining\od_charts\od_heatmap.png
+图表已保存: D:\311-比赛\data-analysis\main\data-mining\od_charts\od_top5.png
 
 ==================================================
   OD 分析完成！
-  图表已保存至: D:\311-比赛\数据挖掘-期末\main\data-mining\od_charts
+  图表已保存至: D:\311-比赛\data-analysis\main\data-mining\od_charts
 ==================================================

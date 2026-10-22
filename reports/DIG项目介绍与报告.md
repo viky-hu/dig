@@ -149,5 +149,5 @@ DIG 已经形成从处理依据到分析结论、再到交互表达的完整展�
 ### 资料与代码依据
 
 - [公开数据来源入口](https://www.heywhale.com/mw/dataset/5d315ebbcf76a60036e565bf)；[上海行政区边界来源](https://geo.datav.aliyun.com/areas_v3/bound/310000_full.json)。底图来源地址记录在 `shanghaiMapData.ts`；公开样本的脱敏描述来自项目随附说明。
-- 数据依据：`数据挖掘-期末/mobike_shanghai_sample_updated.csv`；`main/data-mining/` 下的清洗 CSV、聚类标签 CSV 与四个 Python 分析脚本。
+- 数据依据：`data-analysis/mobike_shanghai_sample_updated.csv`；`main/data-mining/` 下的清洗 CSV、聚类标签 CSV 与四个 Python 分析脚本。
 - 前端依据：`apps/main-platform/app/home/` 的首页及八种插画；`app/insights/` 的模块配置、窗口交接、图表和地图；其 `cleaning/` 子目录中的七步回放、动画与源码摘录。

@@ -1,4 +1,4 @@
-// Exact source excerpts from 数据挖掘-期末/main/data-mining/data_cleaning.py.
+// Exact source excerpts from data-analysis/main/data-mining/data_cleaning.py.
 // Line numbers refer to that source file, not a rewritten demonstration.
 export const CLEANING_SOURCE = {
   "load": {

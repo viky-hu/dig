@@ -12,7 +12,7 @@ export default [
       "**/coverage/**",
       "**/node_modules/**",
       "**/*.d.ts",
-      "数据挖掘-期末/**",
+      "data-analysis/**",
     ],
   },
   ...libraryConfig,

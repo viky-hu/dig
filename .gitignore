@@ -111,6 +111,6 @@ blob-report/
 .python-version
 
 # Re-generated analysis charts; submitted reference charts stay in charts/.
-/数据挖掘-期末/main/data-mining/eda_charts/
-/数据挖掘-期末/main/data-mining/clustering_charts/
-/数据挖掘-期末/main/data-mining/od_charts/
+/data-analysis/main/data-mining/eda_charts/
+/data-analysis/main/data-mining/clustering_charts/
+/data-analysis/main/data-mining/od_charts/

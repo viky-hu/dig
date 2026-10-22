@@ -1,7 +1,7 @@
 ==================================================
   摩拜共享单车探索性数据分析
 ==================================================
-[加载数据] D:\311-比赛\数据挖掘-期末\main\data-mining\cleaned_mobike.csv
+[加载数据] D:\311-比赛\data-analysis\main\data-mining\cleaned_mobike.csv
   数据规模: 102210 行, 14 列
   时间范围: 2016-08-01 00:23:00 ~ 2016-08-31 23:58:00
 
@@ -46,7 +46,7 @@
     22:00    3858  ███████████████████
     23:00    1897  █████████
 
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\eda_charts\hourly_orders.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\eda_charts\hourly_orders.png
 
 ==================================================
   日级订单量分析
@@ -57,7 +57,7 @@
   单日最高: 5,346 单
   单日最低: 1,456 单
 
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\eda_charts\daily_orders.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\eda_charts\daily_orders.png
 
 ==================================================
   工作日 vs 周末对比分析
@@ -66,8 +66,8 @@
   工作日订单量: 76,044 (74.4%)
   周末订单量:   26,166 (25.6%)
 
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\eda_charts\weekday_vs_weekend_total.png
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\eda_charts\weekday_vs_weekend_hourly.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\eda_charts\weekday_vs_weekend_total.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\eda_charts\weekday_vs_weekend_hourly.png
 
 ==================================================
   骑行时长分布分析
@@ -93,9 +93,9 @@
       60-120:  2,288  (  2.2%)  █
      >120min:    294  (  0.3%)
 
-  图表已保存: D:\311-比赛\数据挖掘-期末\main\data-mining\eda_charts\duration_distribution.png
+  图表已保存: D:\311-比赛\data-analysis\main\data-mining\eda_charts\duration_distribution.png
 
 ==================================================
   EDA 分析完成！
-  所有图表已保存至: D:\311-比赛\数据挖掘-期末\main\data-mining\eda_charts
+  所有图表已保存至: D:\311-比赛\data-analysis\main\data-mining\eda_charts
 ==================================================
