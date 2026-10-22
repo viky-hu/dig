@@ -65,29 +65,52 @@ __pypackages__/
 # Deployment
 .vercel/
 
+# Local IDE and AI assistant state (not part of the competition source)
+.idea/
+.vscode/
+.agents/
+.claude/
+.codex/
+/agent.md
+/AGENTS.md
+/CLAUDE.md
+/GEMINI.md
+
 # Editor and OS files
-.idea/**/workspace.xml
-.idea/**/tasks.xml
-.idea/**/usage.statistics.xml
-.idea/**/dictionaries/
-.idea/**/shelf/
-.idea/**/aws.xml
-.idea/**/dataSources/
-.idea/**/dataSources.ids
-.idea/**/dataSources.local.xml
-.idea/**/sqlDataSources.xml
-.idea/**/dynamic.xml
-.idea/**/uiDesigner.xml
-.idea/**/dbnavigator.xml
-.idea/**/httpRequests/
-.idea/httpRequests/
 http-client.private.env.json
 *.iws
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local test reports, temporary files and archives
+playwright-report/
+test-results/
+blob-report/
+.cache/
+.tmp/
+/tmp/
+/temp/
+*.tmp
+*.bak
+~$*
+*.zip
+*.7z
+*.tar
+*.tar.gz
+*.tgz
+
+# Python build artifacts and additional environment/tool caches
+*.egg-info/
+.eggs/
+.uv-cache/
+.conda/
+.python-version
+
+# Re-generated analysis charts; submitted reference charts stay in charts/.
+/数据挖掘-期末/main/data-mining/eda_charts/
+/数据挖掘-期末/main/data-mining/clustering_charts/
+/数据挖掘-期末/main/data-mining/od_charts/

@@ -1,0 +1,6 @@
+# Offline analysis only; the web application does not require Python.
+# Compatible major-version ranges, not a reconstruction of the historical environment.
+pandas>=2.2,<3
+numpy>=1.26,<3
+matplotlib>=3.8,<4
+scikit-learn>=1.4,<2
